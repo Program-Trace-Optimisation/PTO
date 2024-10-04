@@ -1,0 +1,85 @@
+
+# GENETIC ALGORITHM
+
+import math
+import random
+
+class GA:
+
+    ##############
+    # PARAMETERS #
+    ##############
+
+    def __init__(self, op, better=max, callback=None, n_generation=100, population_size=50, truncation_rate=0.5, mutation='mutate_position_wise_ind', crossover='crossover_one_point_ind', verbose=False):
+        
+        self.op = op
+        self.better = better
+        self.callback = callback
+        self.n_generation = n_generation
+        self.population_size = population_size
+        self.truncation_rate = truncation_rate
+        self.mutation = mutation
+        self.crossover = crossover
+        self.verbose = verbose
+                
+        # set-up search operators
+        self.op.mutate_ind = getattr(op, self.mutation)    
+        self.op.crossover_ind = getattr(op, self.crossover)
+
+    #############
+    # ALGORITHM #
+    #############
+
+    # run algorithm 
+    def __call__(self):
+                
+        population = self.create_pop()
+        fitness_population = self.evaluate_pop(population)
+        
+        # online stats
+        search_state = (population, fitness_population)
+        if self.verbose: print(*self.best_pop(population, fitness_population))
+        if self.callback: self.callback(search_state)
+    
+        for _ in range(self.n_generation):
+            mating_pool = self.select_pop(population, fitness_population)
+            offspring_population = self.crossover_pop(mating_pool)
+            population = self.mutate_pop(offspring_population)
+            fitness_population = self.evaluate_pop(population)
+        
+            search_state = (population, fitness_population)
+            if self.verbose: print(*self.best_pop(population, fitness_population))
+            if self.callback and self.callback(search_state): break            
+
+        return self.best_pop(population, fitness_population)
+
+    
+    #################
+    # POP FUNCTIONS #
+    #################  
+    
+    def create_pop(self):
+        return [ self.op.create_ind() for _ in range(self.population_size) ]
+
+    def evaluate_pop(self, population):
+        return [ self.op.evaluate_ind(sol) for sol in population ]
+
+    def select_pop(self, population, fitness_population):
+        sorted_population = sorted(zip(population, fitness_population), key = lambda ind_fit: ind_fit[1], reverse=(self.better == max))
+        return [ individual for individual, fitness in sorted_population[:int(math.ceil(self.population_size * self.truncation_rate))]]
+
+    def crossover_pop(self, population):
+        return [ self.op.crossover_ind(random.choice(population), random.choice(population)) for _ in range(self.population_size) ]
+
+    def mutate_pop(self, population):
+        return [ self.op.mutate_ind(sol) for sol in population ]
+
+    # TODO this should just return min() (or max(), using better=max) O(n)
+    # not sorted()[0] O(n log n)
+    def best_pop(self, population, fitness_population):
+        return sorted(zip(population, fitness_population), key = lambda ind_fit: ind_fit[1], reverse=(self.better == max))[0]
+
+   # def stats_pop(self, fitness_population = [0]):
+   #     return { 'MAX_FITNESS' : max(fitness_population), 'MIN_FITNESS' : min(fitness_population), 'AVG_FITNESS' : sum(fitness_population)/len(fitness_population) }
+
+#############################

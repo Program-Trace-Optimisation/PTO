@@ -1,0 +1,15 @@
+# some stdlib modules we use - already installed but listed for information: 
+# math, random, itertools, functools, copy, inspect, ast 
+
+numpy
+matplotlib
+scipy
+colorful
+astor # https://pypi.org/project/astor/ # do we actually use it? often commmented-out
+wrapt # https://pypi.org/project/wrapt/
+
+# optional:
+# graphviz # optional, for use in creating visualisations of PTO "derivation trees"
+#!conda install --yes --prefix {sys.prefix} graphviz
+
+# networkx # optional, for use in creating visualisations of PTO "derivation trees"
