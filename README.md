@@ -104,7 +104,7 @@ It will discover unit tests under `tests/`
 
 We have more tests in `.ipynb` files, which (TODO) we will gradually convert to automated unit tests.
 
-Please help us by submitting bug reports!
+Please help us by submitting bug reports! Thanks!
 
 
 
