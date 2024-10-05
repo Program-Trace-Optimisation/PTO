@@ -1,4 +1,4 @@
-# At the root of your project, create a setup.py file if you haven't already
+
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 import sys, os
