@@ -29,6 +29,12 @@ class Dist(): # base class
         #offspring = copy(offspring)
         return offspring
     
+    @check_immutable 
+    def convex_crossover(self, other1, other2): # does not alter self and other
+        offspring = random.choice([self, other1, other2])
+        #offspring = copy(offspring)
+        return offspring
+    
     def __repr__(self):
         return f'{self.__class__.__name__}({self.fun.__name__}, {self.args},  val={self.val})' 
         #return self.__class__.__name__ + str((self.fun.__name__, self.args, self.val))

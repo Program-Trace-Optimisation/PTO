@@ -35,6 +35,17 @@ class Random_real(Dist): # class for real-valued distributions
     else:
         offspring = random.choice([self, other]) # discrete recombination
     return offspring
+  
+  @check_immutable
+  def convex_crossover(self, other1, other2):
+    if type(self) == type(other1) == type(other2):
+      offspring = copy(self)
+      min_val = min(self.val, other1.val, other2.val)
+      max_val = max(self.val, other1.val, other2.val)
+      offspring.val = random.uniform(min_val, max_val) # blend recombination
+    else:
+        offspring = random.choice([self, other1, other2]) # discrete recombination
+    return offspring      
 
 #########################
 # Integer distributions #
@@ -69,6 +80,17 @@ class Random_int(Dist): # class for integer-valued distributions
     else:
         offspring = random.choice([self, other]) # discrete recombination
     return offspring
+  
+  @check_immutable
+  def convex_crossover(self, other1, other2):
+    if type(self) == type(other1) == type(other2):
+      offspring = copy(self)
+      min_val = min(self.val, other1.val, other2.val)
+      max_val = max(self.val, other1.val, other2.val)
+      offspring.val = random.randint(min_val, max_val) # blend recombination
+    else:
+        offspring = random.choice([self, other1, other2]) # discrete recombination
+    return offspring  
 
 #############################
 # Categorical distributions #
@@ -96,3 +118,5 @@ class Random_cat(Dist):
     return offspring
 
   # crossover inherited from base class
+
+  # convex crossover inherited from base class

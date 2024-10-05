@@ -130,7 +130,7 @@ class Op:
     
         # uniform crossover on alignment
         new_geno_alignment = {
-            key: random.choice([sol1.geno[key], sol2.geno[key], sol3.geno[key]])
+            key: sol1.geno[key].convex_crossover(sol2.geno[key], sol3.geno[key])
             for key in alignment
         }
     
