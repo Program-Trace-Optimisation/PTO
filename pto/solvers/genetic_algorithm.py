@@ -4,7 +4,7 @@
 import math
 import random
 
-class GA:
+class genetic_algorithm:
 
     ##############
     # PARAMETERS #

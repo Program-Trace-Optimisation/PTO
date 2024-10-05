@@ -3,7 +3,7 @@
 
 ''' Search algorithms are generic without reference to the trace representation. '''
 
-class HC:
+class hill_climber:
     
     ##############
     # PARAMETERS #

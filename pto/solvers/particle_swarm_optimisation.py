@@ -1,6 +1,6 @@
 import random
 
-class PSO:
+class particle_swarm_optimisation:
     def __init__(self, op, better=max, callback=None, n_iteration=100, n_particles=50, w1=0.3, w2=0.3, w3=0.4, mutation_rate=0.01, verbose=False):
         self.op = op
         self.better = better
@@ -102,7 +102,7 @@ class BinaryProblem:
 if __name__ == "__main__":
     #random.seed(42)  # for reproducibility
     op = BinaryProblem(n_dimensions=50)
-    pso = PSO(op, better=max, n_iteration=100, n_particles=50, verbose=True)
+    pso = particle_swarm_optimisation(op, better=max, n_iteration=100, n_particles=50, verbose=True)
     best_solution, best_fitness = pso()
     print(f"Best solution: {best_solution}")
     print(f"Best fitness: {best_fitness}")
