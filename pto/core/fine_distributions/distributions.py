@@ -45,8 +45,12 @@ class Random_real(Dist): # class for real-valued distributions
       offspring.val = random.uniform(min_val, max_val) # blend recombination
     else:
         offspring = random.choice([self, other1, other2]) # discrete recombination
-    return offspring      
+    return offspring
 
+  @check_immutable
+  def distance(self, other):
+    return type(self) != type(other) or min(1, abs(self.val - other.val)/self.range)
+      
 #########################
 # Integer distributions #
 #########################
@@ -90,7 +94,11 @@ class Random_int(Dist): # class for integer-valued distributions
       offspring.val = random.randint(min_val, max_val) # blend recombination
     else:
         offspring = random.choice([self, other1, other2]) # discrete recombination
-    return offspring  
+    return offspring
+
+  @check_immutable
+  def distance(self, other):
+    return type(self) != type(other) or min(1, abs(self.val - other.val)/(self.max-self.min))  
 
 #############################
 # Categorical distributions #
@@ -120,3 +128,5 @@ class Random_cat(Dist):
   # crossover inherited from base class
 
   # convex crossover inherited from base class
+
+  # distance inherited from base class

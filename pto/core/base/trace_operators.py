@@ -139,3 +139,17 @@ class Op:
     
         # fix the new individual's phenotype based on the new genotype
         return self.fix_ind(new_geno)
+    
+    @check_immutable # parent sols not changed
+    def distance_ind(self, sol1, sol2): # trace distance
+
+        # common names
+        common = set(sol1.genos.keys()) ^ set(sol2.genos.keys())
+
+        # distance on common names
+        distance_alignment = sum(sol1.geno[key].distance(sol2.geno[key]) for key in common)
+
+        # symmetric difference on names
+        symmetric_difference = len(set(sol1.genos.keys()) ^ set(sol2.genos.keys())) 
+            
+        return distance_alignment + symmetric_difference
