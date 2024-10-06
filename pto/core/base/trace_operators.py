@@ -140,6 +140,10 @@ class Op:
         # fix the new individual's phenotype based on the new genotype
         return self.fix_ind(new_geno)
     
+    ##################
+    # TRACE DISTANCE #
+    ##################
+    
     @check_immutable # parent sols not changed
     def distance_ind(self, sol1, sol2): # trace distance
 
