@@ -148,12 +148,12 @@ class Op:
     def distance_ind(self, sol1, sol2): # trace distance
 
         # common names
-        common = set(sol1.genos.keys()) & set(sol2.genos.keys())
+        common = set(sol1.geno.keys()) & set(sol2.geno.keys())
 
         # distance on common names
         distance_alignment = sum(sol1.geno[key].distance(sol2.geno[key]) for key in common)
 
         # symmetric difference on names
-        symmetric_difference = len(set(sol1.genos.keys()) ^ set(sol2.genos.keys())) 
+        symmetric_difference = len(set(sol1.geno.keys()) ^ set(sol2.geno.keys())) 
             
         return distance_alignment + symmetric_difference
