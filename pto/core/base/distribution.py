@@ -40,7 +40,7 @@ class Dist(): # base class
         return self != other
     
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.fun.__name__}, {self.args},  val={self.val})' 
+        return f'{self.__class__.__name__}({self.fun.__name__}, {self.args}, val={self.val})' 
         #return self.__class__.__name__ + str((self.fun.__name__, self.args, self.val))
 
     def __eq__(self, other):
