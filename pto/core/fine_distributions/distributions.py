@@ -49,7 +49,7 @@ class Random_real(Dist): # class for real-valued distributions
 
   @check_immutable
   def distance(self, other):
-    return type(self) != type(other) or min(1, abs(self.val - other.val)/self.range)
+    return float(type(self) != type(other) or min(1, abs(self.val - other.val)/self.range))
       
 #########################
 # Integer distributions #
@@ -98,7 +98,7 @@ class Random_int(Dist): # class for integer-valued distributions
 
   @check_immutable
   def distance(self, other):
-    return type(self) != type(other) or min(1, abs(self.val - other.val)/(self.max-self.min))  
+    return float(type(self) != type(other) or min(1, abs(self.val - other.val)/(self.max-self.min)))  
 
 #############################
 # Categorical distributions #

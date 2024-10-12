@@ -37,7 +37,7 @@ class Dist(): # base class
     
     @check_immutable
     def distance(self, other):
-        return self != other
+        return float(self != other)
     
     def __repr__(self):
         return f'{self.__class__.__name__}({self.fun.__name__}, {self.args}, val={self.val})' 
