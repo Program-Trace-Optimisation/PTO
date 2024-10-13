@@ -4,6 +4,8 @@ New problem definitions and new generic search algorithms ('solvers') can be add
 
 This repository contains code implementing PTO in Python. The library itself is in `pto`, with `tests` and `docs` (in progress).
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Program-Trace-Optimisation/PTO/blob/main/example.ipynb)
+
 # Installation
 
 `$ pip install git+ssh://git@github.com:Program-Trace-Optimisation/PTO.git`
@@ -36,8 +38,6 @@ from pto import run, rnd
 def generator(): return [rnd.choice([0, 1]) for i in range(10)]
 (pheno, geno), fx = run(generator, sum, better=max)
 ```
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Program-Trace-Optimisation/PTO/blob/main/example.ipynb)
 
 ## The generator function
 
