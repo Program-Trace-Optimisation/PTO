@@ -80,6 +80,8 @@ Several more examples are available in pto/problems/*.py.
 
 # Contributing to PTO
 
+PTO is developed by Alberto Moraglio (albmor@gmail.com) and James McDermott (jamesmichaelmcdermott@gmail.com). We welcome contributions from the community.
+
 Some fun projects for students could include:
 
 * Write new solvers
