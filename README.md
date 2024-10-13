@@ -37,6 +37,8 @@ def generator(): return [rnd.choice([0, 1]) for i in range(10)]
 (pheno, geno), fx = run(generator, sum, better=max)
 ```
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Program-Trace-Optimisation/PTO/blob/main/example.ipynb)
+
 ## The generator function
 
 As we can see, the generator makes calls to `rnd` methods in the course
