@@ -8,7 +8,7 @@ This repository contains code implementing PTO in Python. The library itself is 
 
 # Installation
 
-`$ pip install git+ssh://git@github.com:Program-Trace-Optimisation/PTO.git`
+`$ pip install git+https://git@github.com:Program-Trace-Optimisation/PTO.git`
 
 Alternatively, after downloading the code (eg using `git clone`):
 
