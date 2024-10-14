@@ -48,7 +48,7 @@ As we can see, the generator makes calls to `rnd` methods in the course
 of generating a candidate solution. `rnd`
 provides the same methods as the Python `random` module, but *traces*
 them so that we can use the collection of random decisions as a genotype.
-Because `rnd` mimics the `random` module API, you can test and debug your generator
+Because `rnd` mimics the `random` module API, we can test and debug our generator
 outside PTO, using `import random as rnd`, and then bring it into PTO by instead using
 `from PTO import run, rnd`.
 
@@ -58,9 +58,10 @@ rule. TODO: document that approach elsewhere.)
 
 ## Extra optional arguments
 
-If you don't need to pass any extra arguments to the generator, fitness function, or solver, the above is all you need.
+For basic usage the above is all we need.
 
-If you do need to pass extra arguments, you can do so like this:
+If we need to pass extra arguments to the generator, fitness function, or solver, 
+we can do so like this:
 
 1. `from pto import run, rnd`
 2. `def generator(N):` - eg N might be a problem size
@@ -77,6 +78,12 @@ We can also pass a callback to be called by the solver, eg:
 
 `run(generator, fitness, callback=lambda x: print(f"Hello from Solver callback! {x}"))`
 
+If we need to generate problem data, we use Python's `random` module as normal, not `rnd`.
+Similarly, if we want to control the random state of the solver, we use `random.seed()`, not `rnd`.
+
+Note: Numpy can be used in generating problem data, and in a solver algorithm, but cannot
+be used in a PTO generator. An extension of PTO will lift this restriction in future. 
+
 Several more examples are available in pto/problems/*.py.
 
 
@@ -91,6 +98,7 @@ Some fun projects for students could include:
 * Consider advanced situations, such as multiobjective problems, interactive problems, dynamic environments, etc (we have substantial code which could be used as starting-points)
 * Create an experiment manager (we have some code which could be usable as a starting point)
 * Experiments with metrics on traces (we have substantially-developed code and theory, to be published soon, but further research is possible - contact us)
+* Numpy extension for generators (contact us)
 
 The ROAR-NET COST Action has working groups relevant to the goals of PTO. PTO has been presented there. COST Action members are especially invited to contact us and join in development. A COST Action Short-Term Scientific Mission is available also.
 
