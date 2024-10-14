@@ -14,7 +14,11 @@ N = 15 # problem size
 
 # distance matrix generated at random (we could use rnd.random() instead of random.random() as this is not traced) 
 # TODO I think the above comment should say we could NOT use??
-dist = [[random.random() for _ in range(N)] for _ in range(N)]
+
+def make_problem_data(N, random_state=None):
+    if random_state is not None:
+        random.seed(random_state) # notice we use Python random as normal for problem data, not PTO rnd
+    return [[random.random() for _ in range(N)] for _ in range(N)]
 
 better = min
 
@@ -46,6 +50,7 @@ def fitness(x, dist):
 
 
 if __name__ == "__main__":
+    dist = make_problem_data(N, random_state=0)
     (pheno, geno), fx = run(generator, fitness, gen_args=(N,), fit_args=(dist,), better=better)
     print(f'Solution {pheno}')
     print(f'Fitness {fx}')

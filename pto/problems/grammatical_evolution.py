@@ -24,11 +24,14 @@ grammar = {
 }
 
 ### TRAINING SET
-        
-target = lambda x: x[0] + 2*x[1]**2 + 3*x[2]**3 # target function
-n = 10 # training set size
-X_train = [[2*random.random() for _ in range(n_vars)] for _ in range(n)] # training inputs
-y_train = [target(xi) for xi in X_train] # training outputs
+
+n_samples = 20
+
+def make_training_data(n_samples, n_vars):
+    target = lambda x: x[0] + 2*x[1]**2 + 3*x[2]**3 # target function
+    X = [[2*random.random() for _ in range(n_vars)] for _ in range(n_samples)] # training inputs
+    y = [target(xi) for xi in X] # training outputs
+    return X, y
 
 better = min
 
@@ -76,6 +79,7 @@ def fitness(expr, X, y):
     return err 
 
 if __name__ == '__main__':
+    X_train, y_train = make_training_data(n_samples, n_vars)
     (pheno, geno), fx = run(generator, fitness, gen_args=(grammar,), fit_args=(X_train, y_train), better=better)
     print(f'Solution {pheno}')
     print(f'Fitness {fx}')

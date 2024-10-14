@@ -14,13 +14,15 @@ n_vars = 3 # problem size (number of input variables)
         
 func_set = [('and', 2), ('or', 2), ('not', 1)] # functions set
 term_set = ['x1', 'x2', 'x3'] # terminals set
-        
-target = lambda x1, x2, x3: x1 or x2 or not x3 # target function
-    
+
 # create training set
-n = 10 # training set size
-X_train = [[random.choice([0, 1]) for _ in range(3)] for _ in range(n)] # training inputs
-y_train = [target(*xi) for xi in X_train] # training outputs
+n_samples = 10 # training set size
+
+def make_training_data(n_samples, n_vars):
+    target = lambda x1, x2, x3: x1 or x2 or not x3 # target function
+    X = [[random.choice([0, 1]) for _ in range(3)] for _ in range(n_samples)] # training inputs
+    y = [target(*xi) for xi in X] # training outputs
+    return X, y
 
 better = min
         
@@ -67,6 +69,7 @@ def fitness(expr, X, y):
 
 
 if __name__ == '__main__':
+    X_train, y_train = make_training_data(n_samples, n_vars)
     (pheno, geno), fx = run(generator, fitness, 
                             gen_args=(func_set, term_set), 
                             fit_args=(X_train, y_train), better=better)
