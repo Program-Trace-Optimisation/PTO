@@ -32,9 +32,8 @@ class Random_real(Dist): # class for real-valued distributions
     if type(self) == type(other):
         offspring = copy(self) 
         offspring.val = random.uniform(self.val, other.val) # blend recombination
-    else:
-        offspring = random.choice([self, other]) # discrete recombination
-    return offspring
+        return offspring
+    return super().crossover(other)
   
   @check_immutable
   def convex_crossover(self, other1, other2):
@@ -43,9 +42,8 @@ class Random_real(Dist): # class for real-valued distributions
       min_val = min(self.val, other1.val, other2.val)
       max_val = max(self.val, other1.val, other2.val)
       offspring.val = random.uniform(min_val, max_val) # blend recombination
-    else:
-        offspring = random.choice([self, other1, other2]) # discrete recombination
-    return offspring
+      return offspring
+    return super().convex_crossover(other1, other2)
 
   @check_immutable
   def distance(self, other):
@@ -89,9 +87,8 @@ class Random_int(Dist): # class for integer-valued distributions
         offspring = copy(self)
         min_val, max_val = (self.val, other.val) if self.val <= other.val else (other.val, self.val)
         offspring.val = random.randint(min_val, max_val) # blend recombination
-    else:
-        offspring = random.choice([self, other]) # discrete recombination
-    return offspring
+        return offspring
+    return super().crossover(other)
   
   @check_immutable
   def convex_crossover(self, other1, other2):
@@ -100,9 +97,8 @@ class Random_int(Dist): # class for integer-valued distributions
       min_val = min(self.val, other1.val, other2.val)
       max_val = max(self.val, other1.val, other2.val)
       offspring.val = random.randint(min_val, max_val) # blend recombination
-    else:
-        offspring = random.choice([self, other1, other2]) # discrete recombination
-    return offspring
+      return offspring
+    return super().convex_crossover(other1, other2)
 
   @check_immutable
   def distance(self, other):
