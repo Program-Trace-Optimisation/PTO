@@ -11,7 +11,7 @@ class RandomTraceable:
     Container for traceable random functions.
     """
         
-    def __init__(self, dist_type='repair', tracer=tracer):
+    def __init__(self, dist_type='fine', tracer=tracer):
         # bind rnd to tracer
         self.tracer = tracer 
 
