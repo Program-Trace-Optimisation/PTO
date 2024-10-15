@@ -50,7 +50,15 @@ class Random_real(Dist): # class for real-valued distributions
   @check_immutable
   def distance(self, other):
     return float(type(self) != type(other) or min(1, abs(self.val - other.val)/self.range))
-      
+  
+  def repair(self, other): # alter self
+    if type(self) == type(other): # if trace entry compatible
+        # trace value adpatation: align on min and rescale on range size
+        self.val = ((other.val-other.min)/other.range)*self.range+self.min # recycle and adapt trace value 
+        self.repair_val() # and repair it
+    else: # if incompatible
+        self.sample() # resample
+    
 #########################
 # Integer distributions #
 #########################
@@ -98,7 +106,15 @@ class Random_int(Dist): # class for integer-valued distributions
 
   @check_immutable
   def distance(self, other):
-    return float(type(self) != type(other) or min(1, abs(self.val - other.val)/(self.max-self.min)))  
+    return float(type(self) != type(other) or min(1, abs(self.val - other.val)/(self.max-self.min)))
+
+  def repair(self, other): # alter self
+      if type(self) == type(other): # if trace entry compatible
+          # trace value adpatation: align on min and rescale on step size
+          self.val = ((other.val-other.min)/other.step)*self.step+self.min # recycle and adapt trace value 
+          self.repair_val() # and repair it
+      else: # if incompatible
+          self.sample() # resample 
 
 #############################
 # Categorical distributions #
@@ -130,3 +146,17 @@ class Random_cat(Dist):
   # convex crossover inherited from base class
 
   # distance inherited from base class
+
+  def repair(self, other): # alter self
+      if type(self) == type(other): # if trace entry compatible
+          # trace value adpatation: reuse value if available, 
+          # or try an available value not available in trace
+          if other.val in self.seq:
+              self.val = other.val  
+          else:
+              diff_seq = [val for val in self.seq if val not in other.seq]
+              self.val = random.choice(diff_seq) if diff_seq else random.choice(self.seq)  # recycle and adapt trace value 
+          #self.repair_val() # and repair it
+      else: # if incompatible
+          self.sample() # resample  
+

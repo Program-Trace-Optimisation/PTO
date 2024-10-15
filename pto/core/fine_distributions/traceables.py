@@ -5,8 +5,6 @@ from ..base import Dist, tracer
 
 from .supp import supp
 from .distributions import Random_real, Random_int, Random_cat
-from .dist_repair import Random_real_repair, Random_int_repair, Random_cat_repair
-
 
 class RandomTraceable:
     """
@@ -20,8 +18,7 @@ class RandomTraceable:
         # map parameters and classes
         self.cls_map = {
             'coarse': {'real': Dist,               'int': Dist,              'cat': Dist},
-            'fine':   {'real': Random_real,        'int': Random_int,        'cat': Random_cat},
-            'repair': {'real': Random_real_repair, 'int': Random_int_repair, 'cat': Random_cat_repair}
+            'fine':   {'real': Random_real,        'int': Random_int,        'cat': Random_cat}
         }
         
         self.dist_type = None  # Initialize dist_type
