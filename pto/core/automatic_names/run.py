@@ -7,7 +7,7 @@ from .autogens import rnd
 
 class NameRunner(FineRunner):
     @classmethod
-    def run(cls, *args, name_type = 'str', dist_type = 'repair', **kwargs):
+    def run(cls, *args, name_type = 'str', dist_type = 'fine', **kwargs):
         # name_type can be 'lin' or 'str'
         # dist_type can be 'coarse' or 'repair'
         

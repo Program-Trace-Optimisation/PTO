@@ -4,7 +4,7 @@ from .traceables import rnd
 
 class FineRunner(CoreRunner):
     @classmethod
-    def run(cls, *args, dist_type = 'repair', **kwargs):
+    def run(cls, *args, dist_type = 'fine', **kwargs):
         
         rnd.config(dist_type = dist_type)
         
