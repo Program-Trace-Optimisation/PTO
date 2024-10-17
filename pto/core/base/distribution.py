@@ -35,6 +35,9 @@ class Dist():
     def distance(self, other):
         return float(self != other)
     
+    def size(self):
+        return 2
+    
     def __repr__(self):
         return f'{self.__class__.__name__}({self.fun.__name__}, {self.args}, val={self.val})' 
     

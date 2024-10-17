@@ -43,6 +43,9 @@ class Random_real(Dist):
             return min(1, abs(self.val - other.val)/self.range)
         return super().distance(other)
     
+    def size(self):
+        return 10
+    
     def repair(self, other):
         if isinstance(other, Random_real):
             self.val = ((other.val-other.min)/other.range)*self.range+self.min
@@ -93,6 +96,9 @@ class Random_int(Dist):
         if isinstance(other, Random_int):
             return min(1, abs(self.val - other.val)/(self.max-self.min))
         return super().distance(other)
+    
+    def size(self):
+        return (self.max-self.min)/self.step
 
     def repair(self, other):
         if isinstance(other, Random_int):
@@ -117,6 +123,9 @@ class Random_cat(Dist):
         if len(set(self.seq)) >= 2:
             offspring.val = random.choice([v for v in self.seq if v != self.val])
         return offspring
+    
+    def size(self):
+        return len(self.seq)
 
     def repair(self, other):
         if isinstance(other, Random_cat):

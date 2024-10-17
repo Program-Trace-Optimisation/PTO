@@ -2,6 +2,7 @@
 from collections import namedtuple
 from copy import copy
 import random
+import math
 
 from .check_immutable import check_immutable
 from .tracer import tracer
@@ -135,3 +136,7 @@ class Op:
         symmetric_difference = len(set(sol1.geno.keys()) ^ set(sol2.geno.keys())) 
             
         return distance_alignment + symmetric_difference
+    
+    def space_dimension_ind(self, sol):
+        return sum(math.log2(entry.size()) for _, entry in sol.geno.items())
+
