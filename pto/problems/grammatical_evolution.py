@@ -46,7 +46,7 @@ def generator(grammar):
     def expand(left_sym): 
         if left_sym in grammar:
             rules = grammar[left_sym]
-            selected_index = rnd.randint(0, len(rules)-1)
+            selected_index = rnd.choice(range(len(rules))) #rnd.randint(0, len(rules)-1)
             return ''.join([expand(right_sym) for i, right_sym in enumerate(rules[selected_index])]) 
         else:
             return left_sym
