@@ -9,37 +9,24 @@ from .tracer import tracer
 # SEARCH OPERATORS ON TRACES
 
 # solution data structure
-
 Sol = namedtuple('Sol', ['pheno', 'geno'])
 
 class Op:
-    
-    ##########
-    # SET UP #
-    ##########
-
     # bind operators (all instances of Op) to tracer
     tracer = tracer
     
     def __init__(self, generator = None, fitness = None, mutation = 'mutate_point_ind', crossover = 'crossover_uniform_ind', tracer = tracer):
         
-        # bind algorithm and problem to operators
         self.generator = generator # problem-specific generator
         self.fitness = fitness # problem-specific fitness
-        
-        # set search operators parameters
         self.mutate_ind = getattr(self, mutation)
         self.crossover_ind = getattr(self, crossover)
             
     def __repr__(self):
         gen_name = None if self.generator is None else self.generator.__name__
         fit_name = None if self.fitness is None else self.fitness.__name__
-        return self.__class__.__name__ + str((gen_name, fit_name, self.mutate_ind.__name__, self.crossover_ind.__name__))
+        return f"{self.__class__.__name__}({gen_name}, {fit_name}, {self.mutate_ind.__name__}, {self.crossover_ind.__name__})"
 
-    #############
-    # OPERATORS #
-    #############
-    
     def evaluate_ind(self, sol):
         return self.fitness(sol.pheno)    
     
@@ -48,67 +35,50 @@ class Op:
         pheno = Op.tracer.play(self.generator, geno)
         return Sol(pheno, geno)
     
-    # WARNING: 'geno' is in place parameter
+    # 'geno' is in place parameter
     def fix_ind(self, geno):
-        pheno = Op.tracer.play(self.generator, geno)
+        pheno = Op.tracer.play(self.generator, geno) # pheno = None
         return Sol(pheno, geno)
     
-    ##########
-    # MUTATE #
-    ##########
-    
-    @check_immutable # parent sol not changed
-    def mutate_position_wise_ind(self, sol): # position-wise mutation
-        
+    @check_immutable
+    def mutate_position_wise_ind(self, sol): 
         mut_prob = 1.0/len(sol.geno)         
-        new_geno = { name : entry.mutation() if random.random() <= mut_prob else entry for name, entry in sol.geno.items() }
-
+        new_geno = { name : entry.mutation() if random.random() <= mut_prob else entry 
+                    for name, entry in sol.geno.items() }
         return self.fix_ind(new_geno)
     
-    @check_immutable # parent sol not changed
-    def mutate_point_ind(self, sol): # point mutation
-        
-        new_geno = copy(sol.geno) # shallow copy
+    @check_immutable 
+    def mutate_point_ind(self, sol): 
+        new_geno = copy(sol.geno) 
         name = random.choice(list(new_geno.keys()))
-        # print(name)
-        new_geno[name] = new_geno[name].mutation() # mutated copy
-
-        # print(new_geno)
-
+        new_geno[name] = new_geno[name].mutation()
         return self.fix_ind(new_geno)
     
-    
-    @check_immutable # parent sol not changed
-    def mutate_random_ind(self, _): # random mutation
-        
+    @check_immutable
+    def mutate_random_ind(self, _):
         return self.create_ind()
-    
-    #############
-    # CROSSOVER #
-    #############
-    
-    @check_immutable # parent sols not changed
-    def crossover_one_point_ind(self, sol1, sol2): # one-point crossover (coarse only)
+        
+    @check_immutable
+    def crossover_one_point_ind(self, sol1, sol2): # coarse only
 
         # align traces on names
-        alignment = [key for key in sol1.geno if key in sol2.geno]
-        assert alignment == [key for key in sol2.geno if key in sol1.geno], 'PTO: common keys in different orders!'
-
+        alignment = self._align_genotypes(sol1, sol2)
+    
         # one-point crossover on alignment
         crossover_point = random.randint(0, len(alignment))
-        new_geno_alignment = { key : (sol1 if pos <= crossover_point else sol2).geno[key] for pos, key in enumerate(alignment) }
+        new_geno_alignment = { key : (sol1 if pos <= crossover_point else sol2).geno[key] 
+                              for pos, key in enumerate(alignment) }
 
         # union of parent traces and recombined alignment
         new_geno = sol1.geno | sol2.geno | new_geno_alignment
         
         return self.fix_ind(new_geno)
 
-    @check_immutable # parent sols not changed
-    def crossover_uniform_ind(self, sol1, sol2): # uniform crossover
+    @check_immutable
+    def crossover_uniform_ind(self, sol1, sol2):
 
         # align traces on names
-        alignment = [key for key in sol1.geno if key in sol2.geno]
-        assert alignment == [key for key in sol2.geno if key in sol1.geno], 'PTO: common keys in different orders!'
+        alignment = self._align_genotypes(sol1, sol2)
 
         # uniform crossover on alignment
         new_geno_alignment = { key : sol1.geno[key].crossover(sol2.geno[key]) for key in alignment }
@@ -116,18 +86,14 @@ class Op:
         # union of parent traces and recombined alignment
         new_geno = sol1.geno | sol2.geno | new_geno_alignment
             
-        return self.fix_ind(new_geno) #Sol(None, new_geno)
+        return self.fix_ind(new_geno) 
 
-    ####################
-    # CONVEX CROSSOVER #
-    #################### 
-
-    @check_immutable # parent sols not changed
+    @check_immutable
     def convex_crossover_ind(self, sol1, sol2, sol3):
+        
         # align traces on names (keys in genotype)
-        alignment = [key for key in sol1.geno if key in sol2.geno and key in sol3.geno]
-        assert alignment == [key for key in sol2.geno if key in sol1.geno and key in sol3.geno], 'PTO: common keys in different orders!'
-    
+        alignment = self._align_genotypes(sol1, sol2, sol3)
+
         # uniform crossover on alignment
         new_geno_alignment = {
             key: sol1.geno[key].convex_crossover(sol2.geno[key], sol3.geno[key])
@@ -140,11 +106,23 @@ class Op:
         # fix the new individual's phenotype based on the new genotype
         return self.fix_ind(new_geno)
     
-    ##################
-    # TRACE DISTANCE #
-    ##################
-    
-    @check_immutable # parent sols not changed
+    @staticmethod
+    def _align_genotypes(*sols):
+        
+        # Use the keys from the first solution (sol1) as the base order
+        base_keys = list(sols[0].geno.keys())
+        
+        # Filter keys that are present in all solutions, maintaining the order from sol1
+        alignment = [key for key in base_keys if all(key in sol.geno for sol in sols)]
+        
+        # Verify that the alignment is consistent across all solutions
+        for sol in sols[1:]:  # Skip sol1 as it's our base order
+            sol_alignment = [key for key in sol.geno.keys() if key in alignment]
+            assert sol_alignment == alignment, 'PTO: common keys in different orders!'
+        
+        return alignment
+        
+    @check_immutable
     def distance_ind(self, sol1, sol2): # trace distance
 
         # common names
