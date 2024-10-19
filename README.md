@@ -94,11 +94,11 @@ PTO is developed by Alberto Moraglio (albmor@gmail.com) and James McDermott (jam
 
 Some fun projects for students could include:
 
-* Write new solvers
-* Consider advanced situations, such as multiobjective problems, interactive problems, dynamic environments, etc (we have substantial code which could be used as starting-points)
-* Create an experiment manager (we have some code which could be usable as a starting point)
+* Write new solvers.
+* Consider advanced situations, such as multiobjective problems, interactive problems, dynamic environments, etc (we have substantial code which could be used as starting-points).
+* Create an experiment manager (we have some code which could be usable as a starting point).
 * Experiments with metrics on traces (we have substantially-developed code and theory, to be published soon, but further research is possible - contact us)
-* Numpy extension for generators (contact us)
+* Numpy extension for generators (contact us).
 
 The ROAR-NET COST Action has working groups relevant to the goals of PTO. PTO has been presented there. COST Action members are especially invited to contact us and join in development. A COST Action Short-Term Scientific Mission is available also.
 
