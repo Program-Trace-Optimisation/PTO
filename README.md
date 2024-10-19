@@ -100,7 +100,7 @@ Some fun projects for students could include:
 * Experiments with metrics on traces (we have substantially-developed code and theory, to be published soon, but further research is possible - contact us)
 * Numpy extension for generators (contact us).
 
-The ROAR-NET COST Action has working groups relevant to the goals of PTO. PTO has been presented there. COST Action members are especially invited to contact us and join in development. A COST Action Short-Term Scientific Mission is available also.
+The [ROAR-NET COST Action](https://roar-net.eu/) has working groups relevant to the goals of PTO. PTO has been presented there. COST Action members are especially invited to contact us and join in development. A COST Action Short-Term Scientific Mission is available also.
 
 
 # Code style
