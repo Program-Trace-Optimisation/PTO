@@ -10,7 +10,12 @@ class genetic_algorithm:
     # PARAMETERS #
     ##############
 
-    def __init__(self, op, better=max, callback=None, n_generation=100, population_size=50, truncation_rate=0.5, mutation='mutate_position_wise_ind', crossover='crossover_one_point_ind', verbose=False):
+    def __init__(self, op, better=max, callback=None, 
+                 n_generation=100, population_size=50, truncation_rate=0.5, 
+                 mutation='mutate_position_wise_ind', 
+                 crossover='crossover_one_point_ind', 
+                 verbose=False,
+                 return_history=False):
         
         self.op = op
         self.better = better
@@ -21,6 +26,7 @@ class genetic_algorithm:
         self.mutation = mutation
         self.crossover = crossover
         self.verbose = verbose
+        self.return_history = return_history
                 
         # set-up search operators
         self.op.mutate_ind = getattr(op, self.mutation)    
@@ -35,10 +41,14 @@ class genetic_algorithm:
                 
         population = self.create_pop()
         fitness_population = self.evaluate_pop(population)
+        if self.return_history:
+            self.history = []
         
         # online stats
         search_state = (population, fitness_population)
-        if self.verbose: print(*self.best_pop(population, fitness_population))
+        best = self.best_pop(population, fitness_population)
+        if self.verbose: print(*best)
+        if self.return_history: self.history.append(best[1])
         if self.callback: self.callback(search_state)
     
         for _ in range(self.n_generation):
@@ -48,10 +58,15 @@ class genetic_algorithm:
             fitness_population = self.evaluate_pop(population)
         
             search_state = (population, fitness_population)
+            best = self.best_pop(population, fitness_population)
             if self.verbose: print(*self.best_pop(population, fitness_population))
+            if self.return_history: self.history.append(best[1])
             if self.callback and self.callback(search_state): break            
 
-        return self.best_pop(population, fitness_population)
+        if self.return_history:
+            return *best, self.history
+        else:
+            return best
 
     
     #################

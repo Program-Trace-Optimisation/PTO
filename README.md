@@ -77,25 +77,45 @@ we can do so like this:
 1. `from pto import run, rnd`
 2. `def generator(N):` - eg N might be a problem size
 3. `def fitness(x, dist):` - eg use a matrix of distances during fitness calculation
-4. Call `run(generator, fitness, gen_args=(N,), fit_args=(dist,), 
-                solver_args={n_generation: 100}, better=min)`
+4. Call `run(generator, fitness, gen_args=(N,), fit_args=(dist,), better=min)`
     
 This allows `run()` to pass the problem data to `fitness` and `generator`, 
-and passes an argument to set the number of iterations in the `solver`, 
 and also specifies that this is a minimisation problem rather than maximisation, 
 with `better=min`.
+
+If we need to generate problem data, eg training data, 
+we use Python's `random` module as normal, not `rnd`.
+Similarly, if we want to control the random state of the solver, 
+we use `random.seed()`, not `rnd`.
+
+Note: Numpy can be used in generating problem data, and in a solver algorithm, but cannot
+be used in a PTO generator. An extension of PTO will lift this restriction in future. 
+
+
+## Solver arguments
+
+The default solver is a hill-climber, but we can chose any of the following by passing in a string: 
+* `random_search`
+* `hill_climber`
+* `genetic_algorithm`
+* `particle_swarm_optimisation`.
+
+`(pheno, geno), fx = run(generator, sum, better=max, Solver='genetic_algorithm')`
+
+Note the uppercase `S` above. This reflects that the genetic algorithm in this case
+is a class, and inside `run()` an instance of it will be created.
+
+We can also pass in arguments to be passed to the `solver`, eg the number of iterations.
+We can ask for a history of best fitness values to be returned also.
+
+`(pheno, geno), fx, history = run(generator, sum, better=max, 
+                                  solver_args={'n_generation': 25, 'return_history': True})`
 
 We can also pass a callback to be called by the solver, eg:
 
 `run(generator, fitness, callback=lambda x: print(f"Hello from Solver callback! {x}"))`
 
-If we need to generate problem data, we use Python's `random` module as normal, not `rnd`.
-Similarly, if we want to control the random state of the solver, we use `random.seed()`, not `rnd`.
-
-Note: Numpy can be used in generating problem data, and in a solver algorithm, but cannot
-be used in a PTO generator. An extension of PTO will lift this restriction in future. 
-
-Several more examples are available in pto/problems/*.py.
+Several more examples are available in [pto/problems/*.py](pto/problems/).
 
 
 

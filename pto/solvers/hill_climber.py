@@ -9,7 +9,11 @@ class hill_climber:
     # PARAMETERS #
     ##############
     
-    def __init__(self, op, better=max, callback=None, n_generation=1000, mutation='mutate_position_wise_ind', verbose=False):
+    def __init__(self, op, better=max, callback=None, 
+                 n_generation=1000, 
+                 mutation='mutate_position_wise_ind', 
+                 verbose=False,
+                 return_history=False):
         
         self.op = op
         self.better = better
@@ -17,6 +21,7 @@ class hill_climber:
         self.n_generation = n_generation
         self.mutation = mutation
         self.verbose = verbose
+        self.return_history = return_history
                 
         # set-up search operators
         self.op.mutate_ind = getattr(op, self.mutation)
@@ -33,9 +38,13 @@ class hill_climber:
         individual = self.op.create_ind()
         fitness_individual = self.op.evaluate_ind(individual)
 
+        if self.return_history:
+            self.history = []
+
         # online stats
         search_state = (individual, fitness_individual)
         if self.verbose: print(*search_state)
+        if self.return_history: self.history.append(search_state[1])
         if self.callback: self.callback(search_state)
     
         for _ in range(self.n_generation):
@@ -47,8 +56,12 @@ class hill_climber:
         
             search_state = (individual, fitness_individual)
             if self.verbose: print(*search_state)
-            if self.callback and self.callback(search_state): break            
+            if self.return_history: self.history.append(search_state[1])
+            if self.callback and self.callback(search_state): break          
         
-        return search_state # return result object?
+        if self.return_history:
+            return *search_state, self.history
+        else:
+            return search_state # return result object?
 
 #---------------

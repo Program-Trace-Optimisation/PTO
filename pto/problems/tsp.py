@@ -52,6 +52,9 @@ def fitness(x, dist):
 
 if __name__ == "__main__":
     dist = make_problem_data(N, random_state=0)
-    (pheno, geno), fx = run(generator, fitness, gen_args=(N,), fit_args=(dist,), better=better)
+    (pheno, geno), fx, history = run(generator, fitness, gen_args=(N,), fit_args=(dist,), better=better, 
+                            Solver='genetic_algorithm',
+                            solver_args={'n_generation': 30, 'return_history': True})
     print(f'Solution {pheno}')
     print(f'Fitness {fx}')
+    print(history[-10:])

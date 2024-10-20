@@ -32,7 +32,8 @@ def fitness(string, target): # chars as list of symbols
 if __name__ == "__main__":
     (pheno, geno), fx = run(generator, fitness, 
                             gen_args=(N, alphabet), 
-                            solver_args={'n_generation': 500}, 
+                            Solver='hill_climber',
+                            solver_args={'n_generation': 500},
                             fit_args=(target,), 
                             better=better)
     print(f'Solution {pheno}')

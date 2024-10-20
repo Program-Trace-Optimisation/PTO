@@ -1,7 +1,10 @@
 import random
 
 class particle_swarm_optimisation:
-    def __init__(self, op, better=max, callback=None, n_iteration=100, n_particles=50, w1=0.3, w2=0.3, w3=0.4, mutation_rate=0.01, verbose=False):
+    def __init__(self, op, better=max, callback=None, 
+                 n_iteration=100, n_particles=50, w1=0.3, w2=0.3, w3=0.4, mutation_rate=0.01, 
+                 verbose=False,
+                 return_history=False):
         self.op = op
         self.better = better
         self.callback = callback
@@ -12,8 +15,12 @@ class particle_swarm_optimisation:
         self.w3 = w3  # weight for global best
         self.mutation_rate = mutation_rate
         self.verbose = verbose
+        self.return_history = return_history
 
     def __call__(self):
+        if self.return_history:
+            self.history = []
+
         swarm = self.create_swarm()
         fitness_swarm = self.evaluate_swarm(swarm)
         personal_best = swarm.copy()
@@ -22,6 +29,7 @@ class particle_swarm_optimisation:
         
         search_state = (swarm, fitness_swarm, personal_best, fitness_personal_best, global_best, fitness_global_best)
         if self.verbose: print(f"Initial best: {global_best}, fitness: {fitness_global_best}")
+        if self.return_history: self.history.append(fitness_global_best)
         if self.callback: self.callback(search_state)
     
         for i in range(self.n_iteration):
@@ -35,9 +43,14 @@ class particle_swarm_optimisation:
             search_state = (swarm, fitness_swarm, personal_best, fitness_personal_best, global_best, fitness_global_best)
             if self.verbose and (i + 1) % 10 == 0: 
                 print(f"Iteration {i + 1}: Best fitness: {fitness_global_best}")
-            if self.callback and self.callback(search_state): break            
+            if self.callback and self.callback(search_state): break 
+            if self.return_history: self.history.append(fitness_global_best)           
 
-        return global_best, fitness_global_best
+        if self.return_history:
+            return global_best, fitness_global_best, self.history
+        else:
+            return global_best, fitness_global_best
+        return 
     
     def create_swarm(self):
         return [self.op.create_ind() for _ in range(self.n_particles)]
