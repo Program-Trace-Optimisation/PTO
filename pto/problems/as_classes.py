@@ -6,6 +6,7 @@ from . import (
     symbolic_regression, 
     grammatical_evolution, 
     graph_evolution,
+    neural_network
 )
 
 class Problem:
@@ -95,4 +96,17 @@ class GraphEvolution(Problem):
         self.fit_args = (graph_evolution.target,)
         self.better = graph_evolution.better
 
-__all__ = ['OneMax', 'LeadingOnes', 'Sphere', 'HelloWorld']
+class NeuralNetwork(Problem):
+    def __init__(self, n_inputs, max_hidden, n_outputs, n_samples):
+        super().__init__()
+        self.fitness = neural_network.fitness
+        self.generator = neural_network.generator
+        self.gen_args = (n_inputs, max_hidden, n_outputs)
+        # (X_train, y_train)
+        self.fit_args = neural_network.make_training_data(n_samples, n_inputs, 
+                                                          neural_network.target_function) 
+        self.better = neural_network.better        
+
+__all__ = ['OneMax', 'LeadingOnes', 'Sphere', 'HelloWorld', 'TSP', 
+           'SymbolicRegression', 'GrammaticalEvolution', 'GraphEvolution',
+           'NeuralNetwork']
