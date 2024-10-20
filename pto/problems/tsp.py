@@ -35,7 +35,7 @@ def generator(N):
     perm = list(range(N))
         
     for i in range(N):
-        j = rnd.randint(i, N-1)
+        j = rnd.choice(range(i,N)) # NB, not randint(i, N-1) as that treats the result as an ordinal
         perm[j], perm[i] = perm[i], perm[j] # swap
     
     return perm
