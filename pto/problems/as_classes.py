@@ -53,6 +53,7 @@ class HelloWorld(Problem):
 class TSP(Problem):
     def __init__(self, D=None, N=None, random_state=None):
         # pass in a distance matrix D, or else a size N and we will generate a random D
+        super().__init__()
         if (D is None and N is None) or (D is not None and N is not None):
             raise ValueError("Bad arguments: pass exactly 1 of distance matrix D or random instance size N")
         if random_state is not None and N is None:
@@ -68,6 +69,7 @@ class TSP(Problem):
 
 class SymbolicRegression(Problem):
     def __init__(self, n_samples, n_vars):
+        super().__init__()
         self.fitness = symbolic_regression.fitness
         self.generator = symbolic_regression.generator
         self.gen_args = (symbolic_regression.func_set, symbolic_regression.term_set)
@@ -76,6 +78,7 @@ class SymbolicRegression(Problem):
 
 class GrammaticalEvolution(Problem):
     def __init__(self, n_samples, n_vars):
+        super().__init__()
         self.fitness = grammatical_evolution.fitness
         self.generator = grammatical_evolution.generator
         self.gen_args = (grammatical_evolution.grammar, )
@@ -85,6 +88,7 @@ class GrammaticalEvolution(Problem):
     
 class GraphEvolution(Problem):
     def __init__(self):
+        super().__init__()
         self.fitness = graph_evolution.fitness
         self.generator = graph_evolution.generator
         self.gen_args = (graph_evolution.N,)
