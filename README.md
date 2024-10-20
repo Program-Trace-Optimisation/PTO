@@ -56,6 +56,17 @@ The generator can call sub-functions, but they have to defined as nested
 functions inside the generator function. (There is another approach which relaxes this
 rule. TODO: document that approach elsewhere.)
 
+## Different operators
+
+* There are three mutation operators:
+  * Point mutation, which makes one change: pass in `run(..., mutation='mutate_point_ind')`
+  * Position-wise mutation, which changes every locus with a certain low probability: pass `run(..., mutation='mutate_position_wise_ind')`
+  * Random mutation, which generates a completely new individual: pass in `run(..., mutation='mutate_random_ind')`
+* There are two crossover operators:
+  * Uniform crossover, which takes each value uniformly from one parent or the other: pass in `run(..., crossover='crossover_uniform_ind')`
+  * Convex crossover, which operates in the same way but on three parents: pass in `run(..., crossover='crossover_convex_ind')`
+  * (There is also one-point crossover, `crossover_one_point_ind`, which is well-defined only for base PTO, and so should not be used.)
+
 ## Extra optional arguments
 
 For basic usage the above is all we need.
@@ -91,6 +102,8 @@ Several more examples are available in pto/problems/*.py.
 # Contributing to PTO
 
 PTO is developed by Alberto Moraglio (albmor@gmail.com) and James McDermott (jamesmichaelmcdermott@gmail.com). We welcome contributions from the community.
+
+See [](DEVELOPERS.md) for more information on core concepts in the PTO implementation.
 
 Some fun projects for students could include:
 
