@@ -123,7 +123,7 @@ Several more examples are available in [pto/problems/*.py](pto/problems/).
 
 PTO is developed by Alberto Moraglio (albmor@gmail.com) and James McDermott (jamesmichaelmcdermott@gmail.com). We welcome contributions from the community.
 
-See [](DEVELOPERS.md) for more information on core concepts in the PTO implementation.
+See [here](DEVELOPERS.md) for more information on core concepts in the PTO implementation.
 
 Some fun projects for students could include:
 
