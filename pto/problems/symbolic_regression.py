@@ -3,29 +3,36 @@
 from pto import run, rnd
 
 import random # for generating problem data
+import math
 
     
 #################
 # INSTANCE DATA #
 #################
-    
-                
-n_vars = 3 # problem size (number of input variables)
-        
-func_set = [('and', 2), ('or', 2), ('not', 1)] # functions set
-term_set = ['x1', 'x2', 'x3'] # terminals set
 
-# create training set
-n_samples = 10 # training set size
-
-def make_training_data(n_samples, n_vars):
-    target = lambda x1, x2, x3: x1 or x2 or not x3 # target function
-    X = [[random.choice([0, 1]) for _ in range(3)] for _ in range(n_samples)] # training inputs
-    y = [target(*xi) for xi in X] # training outputs
+def make_training_data(n_samples, n_vars, func_set, term_set):
+    target_str = full(func_set, term_set) # target function: use a large subset of the variables
+    # print(target_str)
+    target = eval("lambda x: " + target_str)
+    X = [[random.choice([0, 1]) for _ in range(n_vars)] for _ in range(n_samples)] # training inputs
+    y = [target(xi) for xi in X] # training outputs
     return X, y
 
 better = min
         
+def full(func_set, term_set):
+    max_depth = math.log2(len(term_set)) # estimate required depth. imperfect because we have 'not'
+    def _full(depth):
+        if depth >= max_depth:
+            expr = random.choice(term_set) # use random as this is for creation of problem instance
+        else:
+            func, arity = random.choice(func_set)
+            if arity == 1:
+                expr = '(%s %s)' % (func, _full(depth + 1))
+            else: # arity = 2
+                expr = '(%s %s %s)' % (_full(depth + 1), func, _full(depth + 1))
+        return expr
+    return _full(0)
 
 ######################
 # SOLUTION GENERATOR #
@@ -56,10 +63,10 @@ def generator(func_set, term_set):
 def fitness(expr, X, y):
     
     # string to function
-    f = eval("lambda x1, x2, x3 : " + expr)
+    f = eval("lambda x: " + expr)
     
     # predictions on traning set
-    yhat = [f(*xi) for xi in X] 
+    yhat = [f(xi) for xi in X] 
     
     # error on traing set
     err = sum(abs(yhati - yi) for (yhati, yi) in zip(yhat, y))
@@ -69,7 +76,15 @@ def fitness(expr, X, y):
 
 
 if __name__ == '__main__':
-    X_train, y_train = make_training_data(n_samples, n_vars)
+
+    n_vars = 10 # problem size (number of input variables)
+    func_set = [('and', 2), ('or', 2), ('not', 1)] # functions set
+    term_set = [f'x[{i}]' for i in range(n_vars)] # terminals set
+
+    # create training set
+    n_samples = 10 # training set size
+    X_train, y_train = make_training_data(n_samples, n_vars, func_set, term_set)
+
     (pheno, geno), fx = run(generator, fitness, 
                             gen_args=(func_set, term_set), 
                             fit_args=(X_train, y_train), better=better)

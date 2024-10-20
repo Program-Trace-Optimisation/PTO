@@ -1,13 +1,20 @@
-from . import (
-    onemax, 
-    sphere, 
-    helloworld, 
-    tsp, 
-    symbolic_regression, 
-    grammatical_evolution, 
-    graph_evolution,
-    neural_network
-)
+
+# this module contains our standard problems as classes
+# it re-uses the code in the individual problem files, eg onemax.py
+# this file can be run from the current directory with `python as_classes.py`
+# however, it uses an import hack (see below) suggested by Claude
+# TODO: a better solution might be __main__.py
+
+try:
+    # Use absolute imports for when the file is run as a script
+    from pto.problems import (onemax, sphere, helloworld, tsp, 
+                              symbolic_regression, grammatical_evolution, 
+                              graph_evolution, neural_network)
+except ImportError:
+    # Use relative imports for when the file is imported as a module
+    from . import (onemax, sphere, helloworld, tsp, 
+                   symbolic_regression, grammatical_evolution, 
+                   graph_evolution, neural_network)
 
 class Problem:
     def __init__(self):
@@ -73,8 +80,10 @@ class SymbolicRegression(Problem):
         super().__init__()
         self.fitness = symbolic_regression.fitness
         self.generator = symbolic_regression.generator
-        self.gen_args = (symbolic_regression.func_set, symbolic_regression.term_set)
-        self.fit_args = symbolic_regression.make_training_data(n_samples, n_vars) # (X_train, y_train)
+        func_set = [('and', 2), ('or', 2), ('not', 1)]
+        term_set = [f'x[{i}]' for i in range(n_vars)]
+        self.gen_args = (func_set, term_set)
+        self.fit_args = symbolic_regression.make_training_data(n_samples, n_vars, func_set, term_set) # return (X_train, y_train)
         self.better = symbolic_regression.better
 
 class GrammaticalEvolution(Problem):
@@ -82,7 +91,9 @@ class GrammaticalEvolution(Problem):
         super().__init__()
         self.fitness = grammatical_evolution.fitness
         self.generator = grammatical_evolution.generator
-        self.gen_args = (grammatical_evolution.grammar, )
+        grammar = grammatical_evolution.grammar
+        grammar['<varidx>'] = [[str(i)] for i in range(n_vars)]
+        self.gen_args = (grammar, )
         self.fit_args = grammatical_evolution.make_training_data(n_samples, n_vars) # (X_train, y_train)
         self.better = grammatical_evolution.better
         
@@ -110,3 +121,29 @@ class NeuralNetwork(Problem):
 __all__ = ['OneMax', 'LeadingOnes', 'Sphere', 'HelloWorld', 'TSP', 
            'SymbolicRegression', 'GrammaticalEvolution', 'GraphEvolution',
            'NeuralNetwork']
+
+
+if __name__ == "__main__":
+
+    # this is to exercise the problems as classes, in particular polymorphic use
+
+    from pto import run, rnd
+    probs = [
+        OneMax(10),
+        HelloWorld(),
+        Sphere(5),
+        TSP(N=5),
+        SymbolicRegression(30, 3),
+        GrammaticalEvolution(30, 4)
+    ]
+    for prob in probs: 
+        print(prob.__class__.__name__)
+        x, fx = run(prob.generator, 
+                    prob.fitness, 
+                    better=prob.better, 
+                    fit_args=prob.fit_args, 
+                    gen_args=prob.gen_args,
+                    Solver='hill_climber',
+                    solver_args=dict(n_generation=1000))
+        print(x.pheno)
+        print(fx)
