@@ -5,6 +5,7 @@ __pycache__/
 
 scripts/results*.csv
 scripts/results*.txt
+scripts/runs_*/*
 
 # C extensions
 *.so
