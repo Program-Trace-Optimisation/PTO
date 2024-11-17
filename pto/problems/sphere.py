@@ -16,13 +16,15 @@ better = min
 # generate a random point in the space uniformly at random
 def generator(N): #standard uniform initialisation 
     return [rnd.uniform(-1, 1) for i in range(N)]
+
     
 ####################
 # FITNESS FUNCTION #
 ####################
 
-def fitness(vector): 
-    return sum([x**2 for x in vector])   
+def fitness(vector):
+    # target is (0.5, 0.5, ... 0.5), because some algorithms have a bias towards values such as -1, 0, or 1
+    return sum([(x - 0.5)**2 for x in vector])   
 
 if __name__ == "__main__":
     (pheno, geno), fx = run(generator, fitness, 

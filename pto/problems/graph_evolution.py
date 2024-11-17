@@ -4,6 +4,8 @@
 
 from pto import run, rnd
 
+# TODO implement random instance generation for this problem
+
     
 #################
 # INSTANCE DATA #
@@ -60,4 +62,5 @@ if __name__ == '__main__':
                             gen_args=(N,), 
                             fit_args=(target,), better=better)
     print(f'Solution {pheno}')
+    print(f'Trace {geno}')
     print(f'Fitness {fx}')
