@@ -45,19 +45,20 @@ class genetic_algorithm:
             self.history = []
         
         # online stats
-        search_state = (population, fitness_population)
+        search_state = (population, fitness_population, 0)
         best = self.best_pop(population, fitness_population)
         if self.verbose: print(*best)
         if self.return_history: self.history.append(best[1])
         if self.callback: self.callback(search_state)
     
-        for _ in range(self.n_generation):
+        for gen in range(self.n_generation):
             mating_pool = self.select_pop(population, fitness_population)
             offspring_population = self.crossover_pop(mating_pool)
             population = self.mutate_pop(offspring_population)
+            population[0] = best[0] # elitism
             fitness_population = self.evaluate_pop(population)
         
-            search_state = (population, fitness_population)
+            search_state = (population, fitness_population, gen)
             best = self.best_pop(population, fitness_population)
             if self.verbose: print(*self.best_pop(population, fitness_population))
             if self.return_history: self.history.append(best[1])
@@ -66,7 +67,7 @@ class genetic_algorithm:
         if self.return_history:
             return *best, self.history
         else:
-            return best
+            return best[0], best[1], gen
 
     
     #################
@@ -89,11 +90,10 @@ class genetic_algorithm:
     def mutate_pop(self, population):
         return [ self.op.mutate_ind(sol) for sol in population ]
 
-    # TODO this should just return min() (or max(), using better=max) O(n)
-    # not sorted()[0] O(n log n)
     def best_pop(self, population, fitness_population):
-        return sorted(zip(population, fitness_population), key = lambda ind_fit: ind_fit[1], reverse=(self.better == max))[0]
-
+        best_idx = self.better(range(len(fitness_population)), key=lambda i: fitness_population[i])
+        return population[best_idx], fitness_population[best_idx]
+    
    # def stats_pop(self, fitness_population = [0]):
    #     return { 'MAX_FITNESS' : max(fitness_population), 'MIN_FITNESS' : min(fitness_population), 'AVG_FITNESS' : sum(fitness_population)/len(fitness_population) }
 

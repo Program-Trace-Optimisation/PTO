@@ -27,7 +27,8 @@ class particle_swarm_optimisation:
         fitness_personal_best = fitness_swarm.copy()
         global_best, fitness_global_best = self.best_swarm(swarm, fitness_swarm)
         
-        search_state = (swarm, fitness_swarm, personal_best, fitness_personal_best, global_best, fitness_global_best)
+        #search_state = (swarm, fitness_swarm, personal_best, fitness_personal_best, global_best, fitness_global_best)
+        search_state = (swarm, fitness_swarm, 0)
         if self.verbose: print(f"Initial best: {global_best}, fitness: {fitness_global_best}")
         if self.return_history: self.history.append(fitness_global_best)
         if self.callback: self.callback(search_state)
@@ -40,7 +41,8 @@ class particle_swarm_optimisation:
             personal_best, fitness_personal_best = self.update_personal_best(swarm, fitness_swarm, personal_best, fitness_personal_best)
             global_best, fitness_global_best = self.update_global_best(personal_best, fitness_personal_best, global_best, fitness_global_best)
         
-            search_state = (swarm, fitness_swarm, personal_best, fitness_personal_best, global_best, fitness_global_best)
+            #search_state = (swarm, fitness_swarm, personal_best, fitness_personal_best, global_best, fitness_global_best)
+            search_state = (swarm, fitness_swarm, i)
             if self.verbose and (i + 1) % 10 == 0: 
                 print(f"Iteration {i + 1}: Best fitness: {fitness_global_best}")
             if self.callback and self.callback(search_state): break 
@@ -49,7 +51,7 @@ class particle_swarm_optimisation:
         if self.return_history:
             return global_best, fitness_global_best, self.history
         else:
-            return global_best, fitness_global_best
+            return global_best, fitness_global_best, i
         return 
     
     def create_swarm(self):

@@ -42,19 +42,19 @@ class hill_climber:
             self.history = []
 
         # online stats
-        search_state = (individual, fitness_individual)
+        search_state = (individual, fitness_individual, 0)
         if self.verbose: print(*search_state)
         if self.return_history: self.history.append(search_state[1])
         if self.callback: self.callback(search_state)
     
-        for _ in range(self.n_generation):
+        for gen in range(self.n_generation):
     
             offspring = self.op.mutate_ind(individual)            
             fitness_offspring = self.op.evaluate_ind(offspring)
     
             individual, fitness_individual = self.better([(individual, fitness_individual), (offspring, fitness_offspring)], key=lambda x : x[1])
         
-            search_state = (individual, fitness_individual)
+            search_state = (individual, fitness_individual, gen)
             if self.verbose: print(*search_state)
             if self.return_history: self.history.append(search_state[1])
             if self.callback and self.callback(search_state): break          
