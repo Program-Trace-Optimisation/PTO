@@ -111,6 +111,7 @@ class Random_cat(Dist):
     def __init__(self, fun, *args, val=None):
         super().__init__(fun, *args, val=val)
         self.seq = supp[fun][1](args)
+        #(self.seq)
         #self.args = (copy(self.args[0]),)
     
     def repair_val(self):
