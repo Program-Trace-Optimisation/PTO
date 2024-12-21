@@ -51,6 +51,8 @@ class novelty_search:
         # Set up search operators
         self.op.mutate_ind = getattr(op, self.mutation)
         self.op.crossover_ind = getattr(op, self.crossover)
+        if not hasattr(self.op, 'behavior_distance_ind'): 
+            self.op.behavior_distance_ind = lambda ind1, ind2: behavior_distance(ind1.pheno, ind2.pheno)
 
     def __call__(self):
         population = self.create_pop()
@@ -120,7 +122,7 @@ class novelty_search:
         all_individuals = population + self.archive
         
         # Calculate distances to all other individuals
-        distances = [self.behavior_distance(individual, other) 
+        distances = [self.op.behavior_distance_ind(individual, other) 
                     for other in all_individuals if other is not individual]
         
         if not distances:
@@ -142,7 +144,7 @@ class novelty_search:
         
         # Determine local competition radius if not set
         if self.local_competition_radius is None:
-            distances = [self.behavior_distance(individual, other)
+            distances = [self.op.behavior_distance_ind(individual, other)
                         for other in all_individuals if other is not individual]
             radius = sum(distances) / len(distances) if distances else 1.0
         else:
@@ -151,7 +153,7 @@ class novelty_search:
         # Find neighbors within radius
         neighbors_indices = [i for i, other in enumerate(all_individuals)
                            if i != index and 
-                           self.behavior_distance(individual, other) < radius]
+                           self.op.behavior_distance_ind(individual, other) < radius]
         
         if not neighbors_indices:
             return 0.0
@@ -211,12 +213,6 @@ class novelty_search:
 
 #### TEST ON BINARY STRINGS
 
-# Define behavior distance metric
-def my_behavior_distance(ind1, ind2):
-    # Return float representing behavioral distance
-    # Example for bit strings:
-    return sum(a != b for a, b in zip(ind1, ind2))
-
 class BinaryProblem:
     def __init__(self, n_dimensions):
         self.n_dimensions = n_dimensions
@@ -237,11 +233,15 @@ class BinaryProblem:
         point = random.randint(1, len(parent1)-1)  # Exclude endpoints
         return parent1[:point] + parent2[point:]
     
+    # Define behavior distance metric
+    def behavior_distance_ind(self, ind1, ind2):
+        return sum(a != b for a, b in zip(ind1, ind2))
+    
 # Example usage:
 if __name__ == "__main__":
     #random.seed(42)  # for reproducibility
     op = BinaryProblem(n_dimensions=50)
-    nslc = novelty_search(op=op, behavior_distance=my_behavior_distance, population_size=50, n_generation=100)
+    nslc = novelty_search(op=op, behavior_distance=op.behavior_distance_ind, population_size=50, n_generation=100)
     best_solution, best_fitness, generations = nslc()
     print(f"Best solution: {best_solution}")
     print(f"Best fitness: {best_fitness}")
