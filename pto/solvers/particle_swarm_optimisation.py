@@ -118,8 +118,9 @@ if __name__ == "__main__":
     #random.seed(42)  # for reproducibility
     op = BinaryProblem(n_dimensions=50)
     pso = particle_swarm_optimisation(op, better=max, n_iteration=100, n_particles=50, verbose=True)
-    best_solution, best_fitness = pso()
+    best_solution, best_fitness, generations = pso()
     print(f"Best solution: {best_solution}")
     print(f"Best fitness: {best_fitness}")
+    print(f"Generations: {generations}")
 
 
