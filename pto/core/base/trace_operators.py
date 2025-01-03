@@ -32,14 +32,14 @@ class Op:
         return self.fitness(sol.pheno)    
     
     def create_ind(self):
-        geno = {}
-        pheno = Op.tracer.play(self.generator, geno)
+        #geno = {}
+        pheno, geno = Op.tracer.play(self.generator, {})
         return Sol(pheno, geno)
     
     # 'geno' is in place parameter
     def fix_ind(self, geno):
-        pheno = Op.tracer.play(self.generator, geno) # pheno = None
-        return Sol(pheno, geno)
+        pheno, repaired_geno = Op.tracer.play(self.generator, geno) # pheno = None
+        return Sol(pheno, repaired_geno)
     
     @check_immutable
     def mutate_position_wise_ind(self, sol): 
