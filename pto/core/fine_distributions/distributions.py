@@ -146,7 +146,8 @@ class Random_cat(Dist):
 
 #---
 
-# TODO: check implementation and test this class
+# TODO: 1) check implementation and test this class
+#       2) implement handling of keyword args and inplace args
 
 class Random_seq(Dist):
     def __init__(self, fun, *args, val=None, **kwargs):
