@@ -7,7 +7,7 @@ from collections import namedtuple
 Parameter formats by type:
 - 'real': (min, max, range)  # range = max-min or 2*std_dev
 - 'int':  (min, max, step)   # inclusive bounds
-- 'cat':  (sequence,)        # single tuple with sequence
+- 'cat':  sequence           # sequence
 - 'seq':  (sequence, k)      # k is number of items to select/generate
 """
 
@@ -79,10 +79,10 @@ rng_specs = {
        params=lambda args: (args[0], args[1], 1)
    ),
 
-   # Categorical function - all return (sequence,)
+   # Categorical function - all return sequence
    random.choice: RNGSpec(
        type='cat',
-       params=lambda args: (args[0],)
+       params=lambda args: args[0]
    ),
 
    # Sequence functions - all return (sequence, k)
