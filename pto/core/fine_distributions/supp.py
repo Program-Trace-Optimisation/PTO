@@ -86,16 +86,28 @@ rng_specs = {
    ),
 
    # Sequence functions - all return (sequence, k)
-   random.choices: RNGSpec(
-       type='seq',
-       params=lambda args, **kwargs: (args[0], kwargs.get('k', 1))
-   ),
    random.sample: RNGSpec(
        type='seq',
        params=lambda args: (args[0], args[1])
-   ),
-   random.shuffle: RNGSpec(
-       type='seq',
-       params=lambda args: (args[0], len(args[0]))
    )
 }
+
+# Functions requiring special handling
+
+# In-place shuffle - wrapper returns shuffled input
+shuffle = lambda seq: random.shuffle(seq) or seq
+
+rng_specs[shuffle] = RNGSpec(
+       type='seq',
+       params=lambda args: (args[0], len(args[0]))
+)
+
+# Keyword arguments - wrapper converts keyword arguments into optional positional arguments
+def choices(population, weights=None, cum_weights=None, k=1): 
+    print(population, weights, cum_weights, k)  
+    return random.choices(population, weights=weights, cum_weights=cum_weights, k=k)
+
+rng_specs[choices] = RNGSpec(
+       type='seq',
+       params=lambda args: (args[0], args[3])
+)

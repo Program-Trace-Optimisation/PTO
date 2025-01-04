@@ -147,12 +147,12 @@ class Random_cat(Dist):
 #---
 
 # TODO: 1) check implementation and test this class
-#       2) implement handling of keyword args and inplace args
+#       2) implement handling of keyword args and inplace args (DONE)
 
 class Random_seq(Dist):
-    def __init__(self, fun, *args, val=None, **kwargs):
+    def __init__(self, fun, *args, val=None):
         super().__init__(fun, *args, val=val)
-        self.sequence, self.k = rng_specs[fun].params(args, **kwargs)
+        self.sequence, self.k = rng_specs[fun].params(args)
         
     def repair_val(self):
         if not self.val or len(self.val) != self.k:
