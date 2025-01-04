@@ -2,12 +2,14 @@
 from copy import copy
 import random
 from ..base import Dist, check_immutable
-from .supp import supp
+from .supp import rng_specs
+
+#---
 
 class Random_real(Dist):
     def __init__(self, fun, *args, val=None):
         super().__init__(fun, *args, val=val)
-        self.min, self.max, self.range = supp[fun][1](args)
+        self.min, self.max, self.range = rng_specs[fun].params(args)
     
     def repair_val(self):
         self.val = min(max(self.min, self.val), self.max)
@@ -53,10 +55,12 @@ class Random_real(Dist):
         else:
             super().repair(other)
 
+#---
+
 class Random_int(Dist):
     def __init__(self, fun, *args, val=None):
         super().__init__(fun, *args, val=val)
-        self.min, self.max, self.step = supp[fun][1](args)
+        self.min, self.max, self.step = rng_specs[fun].params(args)
     
     def repair_val(self):
         round_val = self.min + round((self.val - self.min) / self.step) * self.step
@@ -107,10 +111,12 @@ class Random_int(Dist):
         else:
             super().repair(other)
 
+#---
+
 class Random_cat(Dist):
     def __init__(self, fun, *args, val=None):
         super().__init__(fun, *args, val=val)
-        self.seq = supp[fun][1](args)
+        self.seq = rng_specs[fun].params(args)
         #(self.seq)
         #self.args = (copy(self.args[0]),)
     
@@ -135,5 +141,85 @@ class Random_cat(Dist):
             else:
                 diff_seq = [val for val in self.seq if val not in other.seq]
                 self.val = random.choice(diff_seq) if diff_seq else random.choice(self.seq)
+        else:
+            super().repair(other)
+
+#---
+
+# TODO: check implementation and test this class
+
+class Random_seq(Dist):
+    def __init__(self, fun, *args, val=None, **kwargs):
+        super().__init__(fun, *args, val=val)
+        self.sequence, self.k = rng_specs[fun].params(args, **kwargs)
+        
+    def repair_val(self):
+        if not self.val or len(self.val) != self.k:
+            self.val = random.sample(self.sequence, self.k)
+    
+    @check_immutable
+    def mutation(self):
+        offspring = copy(self)
+        if len(self.sequence) >= 2:
+            idx = random.randrange(len(offspring.val))
+            valid_choices = [x for x in self.sequence if x not in offspring.val]
+            if valid_choices:
+                offspring.val = list(offspring.val)
+                offspring.val[idx] = random.choice(valid_choices)
+                offspring.val = tuple(offspring.val)
+        return offspring
+    
+    @check_immutable
+    def crossover(self, other):
+        if isinstance(other, Random_seq):
+            offspring = copy(self)
+            if len(set(self.sequence)) >= 2:
+                # Take some elements from each parent while maintaining uniqueness
+                combined = list(set(self.val) | set(other.val))
+                if len(combined) >= self.k:
+                    offspring.val = tuple(random.sample(combined, self.k))
+                else:
+                    # If we need more elements, sample from remaining sequence
+                    needed = self.k - len(combined)
+                    remaining = [x for x in self.sequence if x not in combined]
+                    additional = random.sample(remaining, needed)
+                    offspring.val = tuple(combined + additional)
+            return offspring
+        return super().crossover(other)
+
+    @check_immutable
+    def convex_crossover(self, other1, other2):
+        if isinstance(other1, Random_seq) and isinstance(other2, Random_seq):
+            offspring = copy(self)
+            if len(set(self.sequence)) >= 2:
+                # Combine elements from all three parents
+                combined = list(set(self.val) | set(other1.val) | set(other2.val))
+                if len(combined) >= self.k:
+                    offspring.val = tuple(random.sample(combined, self.k))
+                else:
+                    # If we need more elements, sample from remaining sequence
+                    needed = self.k - len(combined)
+                    remaining = [x for x in self.sequence if x not in combined]
+                    additional = random.sample(remaining, needed)
+                    offspring.val = tuple(combined + additional)
+            return offspring
+        return super().convex_crossover(other1, other2)
+    
+    def size(self):
+        return min(len(self.sequence), self.k)
+    
+    def repair(self, other):
+        if isinstance(other, Random_seq):
+            if len(other.val) == self.k:
+                preserved = [x for x in other.val if x in self.sequence]
+                needed = self.k - len(preserved)
+                if needed > 0:
+                    available = [x for x in self.sequence if x not in preserved]
+                    additional = random.sample(available, min(needed, len(available)))
+                    self.val = tuple(preserved + additional)
+                else:
+                    self.val = tuple(preserved[:self.k])
+            else:
+                self.val = random.sample(self.sequence, self.k)
         else:
             super().repair(other)

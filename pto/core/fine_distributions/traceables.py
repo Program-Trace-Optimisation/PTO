@@ -3,14 +3,14 @@ from functools import wraps
 
 from ..base import Dist, tracer
 
-from .supp import supp
-from .distributions import Random_real, Random_int, Random_cat
+from .supp import rng_specs
+from .distributions import Random_real, Random_int, Random_cat, Random_seq
 
 class RandomTraceable:
     """Creates traceable versions of random functions."""
     
     DISTRIBUTION_TYPES = ['coarse', 'fine']
-    CLASS_MAP = {'real': Random_real, 'int': Random_int, 'cat': Random_cat}
+    CLASS_MAP = {'real': Random_real, 'int': Random_int, 'cat': Random_cat, 'seq': Random_seq}
         
     def __init__(self, dist_type='fine', tracer=tracer):
         self.tracer = tracer         
@@ -30,8 +30,8 @@ class RandomTraceable:
 
     def _bind_traceable_functions(self):
         """Bind traceable versions of all supported random functions."""
-        for fun in supp:
-            dist_cls = Dist if self.dist_type == 'coarse' else self.CLASS_MAP[supp[fun][0]]        
+        for fun in rng_specs:
+            dist_cls = Dist if self.dist_type == 'coarse' else self.CLASS_MAP[rng_specs[fun].type]        
             setattr(self, fun.__name__, self._create_traceable(fun, dist_cls))   
 
     def _create_traceable(self, fun, dist_cls):

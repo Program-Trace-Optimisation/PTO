@@ -1,7 +1,7 @@
 
 from functools import wraps
 
-from ..fine_distributions import RandomTraceable, supp
+from ..fine_distributions import RandomTraceable, rng_specs
 
 from .annotators import func_name, Name
 from .autoplay import tracer
@@ -50,7 +50,7 @@ class AutoNamedRandomTraceable(RandomTraceable):
     
     def _bind_autonamed_functions(self):
         """Create autonamed versions of all supported random functions."""
-        for fun in supp:
+        for fun in rng_specs:
             base_func = getattr(self, fun.__name__)
             auto_func = self._add_autoname(base_func)
             setattr(self, fun.__name__, func_name(auto_func, args_name=False))
