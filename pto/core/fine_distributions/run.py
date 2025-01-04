@@ -1,13 +1,11 @@
 
-from ..base import CoreRunner
+from ..base import run as base_run
 from .traceables import rnd
 
-class FineRunner(CoreRunner):
-    @classmethod
-    def run(cls, *args, dist_type = 'fine', **kwargs):
-        
-        rnd.config(dist_type = dist_type)
-        
-        return super().run(*args, **kwargs)
 
-run = FineRunner.run
+def run(*args, dist_type = 'fine', **kwargs):
+    
+    rnd.config(dist_type = dist_type)
+    
+    return base_run(*args, **kwargs)
+
