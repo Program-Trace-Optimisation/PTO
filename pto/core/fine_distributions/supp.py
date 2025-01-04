@@ -95,8 +95,10 @@ rng_specs = {
 # Functions requiring special handling
 
 # In-place shuffle - wrapper returns shuffled input
-def shuffle(seq): 
-    return random.shuffle(seq) or seq
+def shuffle(seq):
+    seq_copy = list(seq)
+    random.shuffle(seq_copy) 
+    return seq_copy
 
 rng_specs[shuffle] = RNGSpec(
        type='seq',

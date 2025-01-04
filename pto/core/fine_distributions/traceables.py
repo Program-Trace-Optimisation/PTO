@@ -36,9 +36,17 @@ class RandomTraceable:
 
     def _create_traceable(self, fun, dist_cls):
         """Create a traceable version of a random function."""
+        
+        # handle specially inplace input for shuffle 
+        if fun.__name__ == 'shuffle':
+            def shuffle(seq, name=None):
+                seq[:] = self.tracer.sample(name, dist_cls(fun, seq))
+            return shuffle
+
         @wraps(fun)
         def traceable(*args, name=None):
             return self.tracer.sample(name, dist_cls(fun, *args))
+        
         return traceable
 
 rnd = RandomTraceable()
