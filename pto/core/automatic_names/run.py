@@ -5,7 +5,7 @@ from ..fine_distributions import run as fine_run
 from .autoplay import tracer
 from .autogens import rnd
 
-def run(cls, *args, name_type = 'str', dist_type = 'fine', **kwargs):
+def run(*args, name_type = 'str', dist_type = 'fine', **kwargs):
     # name_type can be 'lin' or 'str'
     # dist_type can be 'coarse' or 'fine'
     
