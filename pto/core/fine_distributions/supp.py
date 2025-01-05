@@ -9,6 +9,13 @@ Parameter formats by type:
 - 'int':  (min, max, step)   # inclusive bounds
 - 'cat':  sequence           # sequence
 - 'seq':  (sequence, k)      # k is number of items to select/generate
+
+This file covers all random number generators from Python's Random module (3.12):
+- Real-valued: random, uniform, triangular, betavariate, normalvariate (gauss), 
+              expovariate, gammavariate, lognormvariate, vonmisesvariate, 
+              paretovariate, weibullvariate
+- Integer-valued: randrange, randint, binomialvariate
+- Categorical/Sequence: choice, choices, sample, shuffle
 """
 
 RNGSpec = namedtuple('RNGSpec', ['type', 'params'])
@@ -101,6 +108,14 @@ rng_specs = {
         params=lambda args, kwargs: (
             args[0] if args else kwargs['a'],
             args[1] if len(args) > 1 else kwargs['b'],
+            1
+        )
+    ),
+    random.binomialvariate: RNGSpec(
+        type='int',
+        params=lambda args, kwargs: (
+            0, 
+            args[0] if args else kwargs.get('n', 1),  # upper bound is n
             1
         )
     ),
