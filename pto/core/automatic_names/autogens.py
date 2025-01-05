@@ -56,10 +56,25 @@ class AutoNamedRandomTraceable(RandomTraceable):
             setattr(self, fun.__name__, func_name(auto_func, args_name=False))
     
     def _add_autoname(self, func):
-        """Wrap a function to use automatic naming if no name is provided."""
+        """
+        Wrap a function to use automatic naming if no name is provided.
+        
+        Args:
+            func: Random function to wrap with auto-naming
+            
+        Returns:
+            Wrapped function that handles name generation and passes through kwargs
+            
+        Example:
+            base_func = rnd.uniform
+            auto_func = self._add_autoname(base_func)
+            x = auto_func(0, 1, name='my_name')  # Uses provided name
+            y = auto_func(0, 1)  # Uses auto-generated name
+            z = auto_func(a=0, b=1)  # Handles kwargs
+        """
         @wraps(func)
-        def wrapper(*args, name=None):
-            return func(*args, name=name or self.get_name())
+        def wrapper(*args, name=None, **kwargs):
+            return func(*args, name=name or self.get_name(), **kwargs)
         return wrapper
 
 rnd = AutoNamedRandomTraceable(tracer=tracer)
