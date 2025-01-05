@@ -111,15 +111,6 @@ rng_specs = {
             1
         )
     ),
-    random.binomialvariate: RNGSpec(
-        type='int',
-        params=lambda args, kwargs: (
-            0, 
-            args[0] if args else kwargs.get('n', 1),  # upper bound is n
-            1
-        )
-    ),
-    
     # Categorical/Sequence functions
     random.choice: RNGSpec(
         type='cat',
@@ -140,6 +131,17 @@ rng_specs = {
         )
     )
 }
+
+# Handle binomialvariate (available only from v3.12)
+if 'binomialvariate' in dir(random):
+    rng_specs[random.binomialvariate] = RNGSpec(
+        type='int',
+        params=lambda args, kwargs: (
+            0, 
+            args[0] if args else kwargs.get('n', 1),  # upper bound is n
+            1
+        )
+    )
 
 # Add special case for shuffle
 def shuffle(seq):
