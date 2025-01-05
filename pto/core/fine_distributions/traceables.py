@@ -1,8 +1,6 @@
 
 from functools import wraps
-
 from ..base import Dist, tracer
-
 from .supp import rng_specs
 from .distributions import Random_real, Random_int, Random_cat, Random_seq
 
@@ -39,13 +37,13 @@ class RandomTraceable:
         
         # handle specially inplace input for shuffle 
         if fun.__name__ == 'shuffle':
-            def shuffle(seq, name=None):
-                seq[:] = self.tracer.sample(name, dist_cls(fun, seq))
+            def shuffle(seq, name=None, **kwargs): # keep kwargs for Dist's val parameter
+                seq[:] = self.tracer.sample(name, dist_cls(fun, seq, **kwargs))
             return shuffle
 
         @wraps(fun)
-        def traceable(*args, name=None):
-            return self.tracer.sample(name, dist_cls(fun, *args))
+        def traceable(*args, name=None, **kwargs):
+            return self.tracer.sample(name, dist_cls(fun, *args, **kwargs))
         
         return traceable
 
