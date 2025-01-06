@@ -22,7 +22,7 @@ class Random_real(Dist):
 
    @check_immutable
    def crossover(self, other):
-       if isinstance(other, Random_real):
+       if self.fun.__name__ == other.fun.__name__:
            offspring = copy(self)
            offspring.val = random.uniform(self.val, other.val)
            return offspring
@@ -30,7 +30,7 @@ class Random_real(Dist):
    
    @check_immutable
    def convex_crossover(self, other1, other2):
-       if isinstance(other1, Random_real) and isinstance(other2, Random_real):
+       if self.fun.__name__ == other1.fun.__name__ and self.fun.__name__ == other2.fun.__name__: 
            offspring = copy(self)
            min_val = min(self.val, other1.val, other2.val)
            max_val = max(self.val, other1.val, other2.val)
@@ -40,7 +40,7 @@ class Random_real(Dist):
 
    @check_immutable
    def distance(self, other):
-       if isinstance(other, Random_real):
+       if self.fun.__name__ == other.fun.__name__:
            return min(1, abs(self.val - other.val)/self.range)
        return super().distance(other)
    
@@ -48,7 +48,7 @@ class Random_real(Dist):
        return 10
    
    def repair(self, other):
-       if isinstance(other, Random_real):
+       if self.fun.__name__ == other.fun.__name__:
            self.val = ((other.val-other.min)/other.range)*self.range+self.min
            self.repair_val()
        else:
@@ -75,7 +75,7 @@ class Random_int(Dist):
 
    @check_immutable
    def crossover(self, other):
-       if isinstance(other, Random_int):
+       if self.fun.__name__ == other.fun.__name__:
            offspring = copy(self)
            min_val = min(self.val, other.val)
            max_val = max(self.val, other.val)
@@ -85,7 +85,7 @@ class Random_int(Dist):
    
    @check_immutable
    def convex_crossover(self, other1, other2):
-       if isinstance(other1, Random_int) and isinstance(other2, Random_int):
+       if self.fun.__name__ == other1.fun.__name__ and self.fun.__name__ == other2.fun.__name__: 
            offspring = copy(self)
            min_val = min(self.val, other1.val, other2.val)
            max_val = max(self.val, other1.val, other2.val)
@@ -95,7 +95,7 @@ class Random_int(Dist):
 
    @check_immutable
    def distance(self, other):
-       if isinstance(other, Random_int):
+       if self.fun.__name__ == other.fun.__name__:
            return min(1, abs(self.val - other.val)/(self.max-self.min))
        return super().distance(other)
    
@@ -103,7 +103,7 @@ class Random_int(Dist):
        return (self.max-self.min)/self.step
 
    def repair(self, other):
-       if isinstance(other, Random_int):
+       if self.fun.__name__ == other.fun.__name__:
            self.val = ((other.val-other.min)/other.step)*self.step+self.min
            self.repair_val()
        else:
@@ -130,7 +130,7 @@ class Random_cat(Dist):
        return len(self.seq)
 
    def repair(self, other):
-       if isinstance(other, Random_cat):
+       if self.fun.__name__ == other.fun.__name__:
            if other.val in self.seq:
                self.val = other.val
            else:
@@ -138,6 +138,9 @@ class Random_cat(Dist):
                self.val = random.choice(diff_seq) if diff_seq else random.choice(self.seq)
        else:
            super().repair(other)
+
+# TODO: for the class seq, implement separate search operators 
+# for non-replacement (shuffle, sample) and with-replacement (choices) functions
 
 class Random_seq(Dist):
    """Handle sequences of k unique items from a larger sequence."""
@@ -163,7 +166,7 @@ class Random_seq(Dist):
    
    @check_immutable
    def crossover(self, other):
-       if isinstance(other, Random_seq):
+       if self.fun.__name__ == other.fun.__name__:
            offspring = copy(self)
            if len(set(self.sequence)) >= 2:
                combined = list(set(self.val) | set(other.val))
@@ -179,7 +182,7 @@ class Random_seq(Dist):
 
    @check_immutable
    def convex_crossover(self, other1, other2):
-       if isinstance(other1, Random_seq) and isinstance(other2, Random_seq):
+       if self.fun.__name__ == other1.fun.__name__ and self.fun.__name__ == other2.fun.__name__:
            offspring = copy(self)
            if len(set(self.sequence)) >= 2:
                combined = list(set(self.val) | set(other1.val) | set(other2.val))
@@ -197,7 +200,7 @@ class Random_seq(Dist):
        return min(len(self.sequence), self.k)
    
    def repair(self, other):
-       if isinstance(other, Random_seq):
+       if self.fun.__name__ == other.fun.__name__:
            if len(other.val) == self.k:
                preserved = [x for x in other.val if x in self.sequence]
                needed = self.k - len(preserved)
