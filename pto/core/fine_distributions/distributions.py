@@ -1,5 +1,5 @@
 
-from copy import copy
+from copy import copy, deepcopy
 import random
 from ..base import Dist, check_immutable
 from .supp import rng_specs
@@ -166,7 +166,7 @@ class Random_seq(Dist):
    @check_immutable
    def mutation(self):
        
-       offspring = copy(self)
+       offspring = deepcopy(self)
 
        # feasible mutation for shuffle is swap
        if self.fun.__name__ == 'shuffle':
