@@ -152,16 +152,37 @@ class Random_seq(Dist):
        if not self.val or len(self.val) != self.k:
            self.val = random.sample(self.sequence, self.k)
    
+   def _rnd_swap(self, seq):
+       if len(seq) >= 2:
+           i,j = random.sample(range(len(seq)), 2)
+           seq[i], seq[j] = seq[j], seq[i]
+
+   def _rnd_replace(self, seq_to, seq_from, exclusive=False):
+       idx = random.randrange(len(seq_to)) 
+       valid_choices = [x for x in seq_from if x not in seq_to] if exclusive else seq_from
+       if valid_choices:
+            seq_to[idx] = random.choice(valid_choices)
+
    @check_immutable
    def mutation(self):
+       
        offspring = copy(self)
-       if len(self.sequence) >= 2:
-           idx = random.randrange(len(offspring.val))
-           valid_choices = [x for x in self.sequence if x not in offspring.val]
-           if valid_choices:
-               offspring.val = list(offspring.val)
-               offspring.val[idx] = random.choice(valid_choices)
-               offspring.val = tuple(offspring.val)
+
+       # feasible mutation for shuffle is swap
+       if self.fun.__name__ == 'shuffle':
+           self._rnd_swap(offspring.val)
+
+       # feasible mutation for sample is swap + excluisive replace
+       elif self.fun.__name__ == 'sample':
+           if random.random() < 0.5:
+               self._rnd_swap(offspring.val)
+           else:
+               self._rnd_replace(offspring.val, self.sequence, exclusive=True)
+
+       # feasible mutation for choices is non-exclusive replace
+       else: # self.fun.__name__ == 'choices'
+           self._rnd_replace(offspring.val, self.sequence)
+
        return offspring
    
    @check_immutable
