@@ -1,8 +1,9 @@
 
+import random
 from .run import run as name_run
 from .gen import gen_fun
 
-def run(Gen, *args, **kwargs):
+def run(Gen, *args, seed=None, **kwargs):
     """ 
     Run a solver on a problem, as specified by a generator and fitness function.
 
@@ -16,6 +17,7 @@ def run(Gen, *args, **kwargs):
     * fit_args: optional tuple with arguments to be passed to the fitness function, when run() calls it
     * solver_args: optional dict with keyword args to be passed to the solver when run() instantiates it
     * callback: a function to be called during optimisation
+    * seed: optional random seed for reproducibility
     * name_type: a string, can be 
       * 'lin' (trace uses linear names) or 
       * 'str' (structured names)
@@ -85,9 +87,20 @@ def run(Gen, *args, **kwargs):
 
     """
 
+    # Set random seed globally for the framework
+    if seed is not None:
+      random.seed(seed)
+
     Gen = gen_fun(Gen)
+    result = name_run(Gen, *args, **kwargs)
+
+    # Reset random seed using system time
+    if seed is not None:
+      random.seed(None)
     
-    return name_run(Gen, *args, **kwargs)
+    return result
+
+    
 
 
 # FEATURES/LIMITATIONS:
