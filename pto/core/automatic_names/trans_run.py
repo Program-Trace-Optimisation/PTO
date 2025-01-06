@@ -87,16 +87,17 @@ def run(Gen, *args, seed=None, **kwargs):
 
     """
 
-    # Set random seed globally for the framework
+    # Set random seed globally for the framework while preserving original state
     if seed is not None:
+      rng_state = random.getstate()  # Save current state
       random.seed(seed)
 
     Gen = gen_fun(Gen)
     result = name_run(Gen, *args, **kwargs)
 
-    # Reset random seed using system time
+    # Restore random generator to previous state
     if seed is not None:
-      random.seed(None)
+      random.setstate(rng_state)
     
     return result
 
