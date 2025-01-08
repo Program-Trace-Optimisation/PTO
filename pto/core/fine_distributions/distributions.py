@@ -231,10 +231,12 @@ class Random_seq(Dist):
                     cross_seq[i] = seq2[i]
         return cross_seq
 
-    def _onepoint_corssover(self, seq1, seq2):
+    def _replace_corssover(self, seq1, seq2, seq_from):
         cross_seq = copy(seq1)
         point = random.randrange(min(len(seq1), len(seq2)))
-        cross_seq = seq2[:point] + seq1[point:]
+        for i in range(point):
+            if cross_seq[i] != seq2[i] and seq2[i] in seq_from:
+                cross_seq[i] = seq2[i]
         return cross_seq
 
     @check_immutable
@@ -254,12 +256,13 @@ class Random_seq(Dist):
 
             # feasible mutation for choices is non-exclusive replace
             else:  # self.fun.__name__ == 'choices'
-                offspring.val = self._onepoint_crossover(self.val, other.val)
+                offspring.val = self._replace_crossover(
+                    self.val, other.val, self.sequence
+                )
 
             return offspring
         return super().crossover(other)
 
-    # FIXME
     @check_immutable
     def convex_crossover(self, other1, other2):
         if (
@@ -267,18 +270,41 @@ class Random_seq(Dist):
             and self.fun.__name__ == other2.fun.__name__
         ):
             offspring = copy(self)
-            if len(set(self.sequence)) >= 2:
-                combined = list(set(self.val) | set(other1.val) | set(other2.val))
-                if len(combined) >= self.k:
-                    offspring.val = tuple(random.sample(combined, self.k))
-                else:
-                    needed = self.k - len(combined)
-                    remaining = [x for x in self.sequence if x not in combined]
-                    additional = random.sample(remaining, needed)
-                    offspring.val = tuple(combined + additional)
+
+            # feasible crossover for shuffle is swap
+            if self.fun.__name__ == "shuffle":
+                offspring.val = self._swap_crossover(self.val, other1.val)
+                offspring.val = self._swap_crossover(offspring.val, other2.val)
+
+            # feasible crossover for sample is swap + excluisive replace
+            elif self.fun.__name__ == "sample":
+                offspring.val = self._swap_replace_crossover(
+                    self.val, other1.val, self.sequence
+                )
+                offspring.val = self._swap_replace_crossover(
+                    offspring.val, other2.val, self.sequence
+                )
+
+            # feasible mutation for choices is non-exclusive replace
+            else:  # self.fun.__name__ == 'choices'
+                offspring.val = self._replace_crossover(
+                    self.val, other1.val, self.sequence
+                )
+                offspring.val = self._replace_crossover(
+                    offspring.val, other2.val, self.sequence
+                )
+
             return offspring
         return super().convex_crossover(other1, other2)
 
+    # FIXME
+    @check_immutable
+    def distance(self, other):
+        # if self.fun.__name__ == other.fun.__name__:
+        #    return min(1, abs(self.val - other.val) / (self.max - self.min))
+        return super().distance(other)
+
+    # FIXME
     def size(self):
         return min(len(self.sequence), self.k)
 
