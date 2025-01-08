@@ -231,7 +231,7 @@ class Random_seq(Dist):
                     cross_seq[i] = seq2[i]
         return cross_seq
 
-    def _replace_corssover(self, seq1, seq2, seq_from):
+    def _replace_crossover(self, seq1, seq2, seq_from):
         cross_seq = copy(seq1)
         point = random.randrange(min(len(seq1), len(seq2)))
         for i in range(point):
