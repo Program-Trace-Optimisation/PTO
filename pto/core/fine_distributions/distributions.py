@@ -309,11 +309,75 @@ class Random_seq(Dist):
             return offspring
         return super().convex_crossover(other1, other2)
 
-    # FIXME
+    def _swap_distance(self, seq1, seq2):
+        count = 0
+        sequence = seq1.copy()
+
+        # For each position
+        for i in range(min(len(seq1), len(seq2))):
+            # If element exists in sequence and isn't already in correct position
+            if seq2[i] in sequence and sequence[i] != seq2[i]:
+                # Find where the desired element is
+                j = sequence.index(seq2[i])
+                # Perform the swap
+                sequence[i], sequence[j] = sequence[j], sequence[i]
+                count += 1
+
+        return count  # + abs(len(seq1)-len(seq2))
+
+    def _swap_replace_distance(self, seq1, seq2, seq_from):
+        sequence = seq1.copy()
+        swaps = 0
+        replacements = 0
+
+        # For each position
+        for i in range(min(len(seq1), len(seq2))):
+            if sequence[i] != seq2[i]:
+                # Try swap if element exists in sequence
+                if seq2[i] in sequence:
+                    j = sequence.index(seq2[i])
+                    sequence[i], sequence[j] = sequence[j], sequence[i]
+                    swaps += 1
+                # Try replacement if element exists in allowed pool
+                elif seq2[i] in seq_from:
+                    sequence[i] = seq2[i]
+                    replacements += 1
+
+        total_distance = swaps + replacements
+        return total_distance, swaps, replacements
+
+    def _replace_distance(self, seq1, seq2, seq_from):
+        replacements = 0
+
+        # For each position
+        for i in range(min(len(seq1), len(seq2))):
+            # Count replacement if:
+            # 1) Elements are different AND
+            # 2) New element is in allowed pool
+            if seq1[i] != seq2[i] and seq2[i] in seq_from:
+                replacements += 1
+
+        return replacements
+
+    # FIXME: work in progress
     @check_immutable
     def distance(self, other):
-        # if self.fun.__name__ == other.fun.__name__:
-        #    return min(1, abs(self.val - other.val) / (self.max - self.min))
+        if self.fun.__name__ == other.fun.__name__:
+            offspring = copy(self)
+
+            # feasible crossover for shuffle is swap
+            if self.fun.__name__ == "shuffle":
+                dist = self._swap_distance(self.val, other.val)
+
+            # feasible crossover for sample is swap + excluisive replace
+            elif self.fun.__name__ == "sample":
+                dist = self._swap_replace_distance(self.val, other.val, self.sequence)
+
+            # feasible crossover for choices is non-exclusive replace
+            else:  # self.fun.__name__ == 'choices'
+                dist = self._replace_distance(self.val, other.val, self.sequence)
+
+            return dist
         return super().distance(other)
 
     # FIXME
