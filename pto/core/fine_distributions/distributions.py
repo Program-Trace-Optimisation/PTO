@@ -210,18 +210,26 @@ class Random_seq(Dist):
 
         return offspring
 
-    def _swap_crossover(self, seq1, seq2):
+    def _swap_crossover(self, seq1, seq2, end_point=False):
         cross_seq = copy(seq1)
-        point = random.randrange(min(len(seq1), len(seq2)))
+        point = (
+            min(len(seq1), len(seq2))
+            if end_point
+            else random.randrange(min(len(seq1), len(seq2)))
+        )
         for i in range(point):
             if cross_seq[i] != seq2[i] and seq2[i] in cross_seq:
                 j = cross_seq.index(seq2[i])
                 cross_seq[i], cross_seq[j] = cross_seq[j], cross_seq[i]
         return cross_seq
 
-    def _swap_replace_crossover(self, seq1, seq2, seq_from):
+    def _swap_replace_crossover(self, seq1, seq2, seq_from, end_point=False):
         cross_seq = copy(seq1)
-        point = random.randrange(min(len(seq1), len(seq2)))
+        point = (
+            min(len(seq1), len(seq2))
+            if end_point
+            else random.randrange(min(len(seq1), len(seq2)))
+        )
         for i in range(point):
             if cross_seq[i] != seq2[i]:
                 if seq2[i] in cross_seq:
@@ -231,9 +239,13 @@ class Random_seq(Dist):
                     cross_seq[i] = seq2[i]
         return cross_seq
 
-    def _replace_crossover(self, seq1, seq2, seq_from):
+    def _replace_crossover(self, seq1, seq2, seq_from, end_point=False):
         cross_seq = copy(seq1)
-        point = random.randrange(min(len(seq1), len(seq2)))
+        point = (
+            min(len(seq1), len(seq2))
+            if end_point
+            else random.randrange(min(len(seq1), len(seq2)))
+        )
         for i in range(point):
             if cross_seq[i] != seq2[i] and seq2[i] in seq_from:
                 cross_seq[i] = seq2[i]
@@ -254,7 +266,7 @@ class Random_seq(Dist):
                     self.val, other.val, self.sequence
                 )
 
-            # feasible mutation for choices is non-exclusive replace
+            # feasible crossover for choices is non-exclusive replace
             else:  # self.fun.__name__ == 'choices'
                 offspring.val = self._replace_crossover(
                     self.val, other.val, self.sequence
@@ -285,7 +297,7 @@ class Random_seq(Dist):
                     offspring.val, other2.val, self.sequence
                 )
 
-            # feasible mutation for choices is non-exclusive replace
+            # feasible crossover for choices is non-exclusive replace
             else:  # self.fun.__name__ == 'choices'
                 offspring.val = self._replace_crossover(
                     self.val, other1.val, self.sequence
@@ -308,19 +320,23 @@ class Random_seq(Dist):
     def size(self):
         return min(len(self.sequence), self.k)
 
-    # FIXME
     def repair(self, other):
         if self.fun.__name__ == other.fun.__name__:
-            if len(other.val) == self.k:
-                preserved = [x for x in other.val if x in self.sequence]
-                needed = self.k - len(preserved)
-                if needed > 0:
-                    available = [x for x in self.sequence if x not in preserved]
-                    additional = random.sample(available, min(needed, len(available)))
-                    self.val = tuple(preserved + additional)
-                else:
-                    self.val = tuple(preserved[: self.k])
-            else:
-                self.val = random.sample(self.sequence, self.k)
+
+            # feasible repair for shuffle is swap
+            if self.fun.__name__ == "shuffle":
+                self.val = self._swap_crossover(self.val, other.val, end_point=True)
+
+            # feasible repair for sample is swap + excluisive replace
+            elif self.fun.__name__ == "sample":
+                self.val = self._swap_replace_crossover(
+                    self.val, other.val, self.sequence, end_point=True
+                )
+
+            # feasible repair for choices is non-exclusive replace
+            else:  # self.fun.__name__ == 'choices'
+                self.val = self._replace_crossover(
+                    self.val, other.val, self.sequence, end_point=True
+                )
         else:
             super().repair(other)
