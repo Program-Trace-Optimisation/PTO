@@ -219,6 +219,24 @@ class Random_seq(Dist):
                 cross_seq[i], cross_seq[j] = cross_seq[j], cross_seq[i]
         return cross_seq
 
+    def _swap_replace_crossover(self, seq1, seq2, seq_from):
+        cross_seq = copy(seq1)
+        point = random.randrange(min(len(seq1), len(seq2)))
+        for i in range(point):
+            if cross_seq[i] != seq2[i]:
+                if seq2[i] in cross_seq:
+                    j = cross_seq.index(seq2[i])
+                    cross_seq[i], cross_seq[j] = cross_seq[j], cross_seq[i]
+                elif seq2[i] in seq_from:
+                    cross_seq[i] = seq2[i]
+        return cross_seq
+
+    def _onepoint_corssover(self, seq1, seq2):
+        cross_seq = copy(seq1)
+        point = random.randrange(min(len(seq1), len(seq2)))
+        cross_seq = seq2[:point] + seq1[point:]
+        return cross_seq
+
     @check_immutable
     def crossover(self, other):
         if self.fun.__name__ == other.fun.__name__:
@@ -228,26 +246,20 @@ class Random_seq(Dist):
             if self.fun.__name__ == "shuffle":
                 offspring.val = self._swap_crossover(self.val, other.val)
 
-            # feasible crossover for sample is swap + excluisive replace (?)
+            # feasible crossover for sample is swap + excluisive replace
             elif self.fun.__name__ == "sample":
-                pass
+                offspring.val = self._swap_replace_crossover(
+                    self.val, other.val, self.sequence
+                )
 
-            # feasible mutation for choices is non-exclusive replace (?)
+            # feasible mutation for choices is non-exclusive replace
             else:  # self.fun.__name__ == 'choices'
-                pass
+                offspring.val = self._onepoint_crossover(self.val, other.val)
 
-            # if len(set(self.sequence)) >= 2:
-            #    combined = list(set(self.val) | set(other.val))
-            #    if len(combined) >= self.k:
-            #        offspring.val = tuple(random.sample(combined, self.k))
-            #    else:
-            #        needed = self.k - len(combined)
-            #        remaining = [x for x in self.sequence if x not in combined]
-            #        additional = random.sample(remaining, needed)
-            #        offspring.val = tuple(combined + additional)
             return offspring
         return super().crossover(other)
 
+    # FIXME
     @check_immutable
     def convex_crossover(self, other1, other2):
         if (
@@ -270,6 +282,7 @@ class Random_seq(Dist):
     def size(self):
         return min(len(self.sequence), self.k)
 
+    # FIXME
     def repair(self, other):
         if self.fun.__name__ == other.fun.__name__:
             if len(other.val) == self.k:
