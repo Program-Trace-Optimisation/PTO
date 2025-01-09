@@ -166,9 +166,10 @@ class Random_seq(Dist):
         super().__init__(fun, *args, val=val, **kwargs)
         self.sequence, self.k = rng_specs[fun].params(args, kwargs)
 
-    def repair_val(self):
-        if not self.val or len(self.val) != self.k:
-            self.val = random.sample(self.sequence, self.k)
+    # FIXME
+    # def repair_val(self):
+    #    if not self.val or len(self.val) != self.k:
+    #        self.val = random.sample(self.sequence, self.k)
 
     # point mutation (better position-wise mutation?)
     @staticmethod
@@ -307,8 +308,8 @@ class Random_seq(Dist):
         return super().distance(other)
 
     # FIXME
-    def size(self):
-        return min(len(self.sequence), self.k)
+    # def size(self):
+    #    return min(len(self.sequence), self.k)
 
     def repair(self, other):
         if self.fun.__name__ == other.fun.__name__:
