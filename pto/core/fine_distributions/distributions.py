@@ -256,30 +256,14 @@ class Random_seq(Dist):
         ):
             offspring = copy(self)
 
-            # feasible crossover for shuffle is swap
-            if self.fun.__name__ == "shuffle":
-                offspring.val = self._swap_crossover(self.val, other1.val)
-                offspring.val = self._swap_crossover(offspring.val, other2.val)
-
-            # feasible crossover for sample is swap + excluisive replace
-            elif self.fun.__name__ == "sample":
-                offspring.val = self._swap_replace_crossover(
-                    self.val, other1.val, self.sequence
-                )
-                offspring.val = self._swap_replace_crossover(
-                    offspring.val, other2.val, self.sequence
-                )
-
-            # feasible crossover for choices is non-exclusive replace
-            else:  # self.fun.__name__ == 'choices'
-                offspring.val = self._replace_crossover(
-                    self.val, other1.val, self.sequence
-                )
-                offspring.val = self._replace_crossover(
-                    offspring.val, other2.val, self.sequence
-                )
-
+            offspring.val = self._swap_replace_crossover(
+                self.val, other1.val, **self._replace_from()[self.fun.__name__]
+            )
+            offspring.val = self._swap_replace_crossover(
+                offspring.val, other2.val, **self._replace_from()[self.fun.__name__]
+            )
             return offspring
+
         return super().convex_crossover(other1, other2)
 
     def _swap_distance(self, seq1, seq2):
