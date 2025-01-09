@@ -198,7 +198,7 @@ class Random_seq(Dist):
         offspring = copy(self)
         replace_from = {
             "shuffle": [],
-            "sample": multiset_diff(self.sequence, self.val),
+            "sample": self.multiset_diff(self.sequence, self.val),
             "choices": self.sequence,
         }
         offspring.val = self._swap_replace_mutation(
