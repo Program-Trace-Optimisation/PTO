@@ -1,5 +1,6 @@
 from copy import copy
 import random
+from collections import Counter
 from ..base import Dist, check_immutable
 from .supp import rng_specs
 
@@ -169,45 +170,40 @@ class Random_seq(Dist):
         if not self.val or len(self.val) != self.k:
             self.val = random.sample(self.sequence, self.k)
 
-    def _swap_mutation(self, seq):
-        if len(seq) >= 2:
-            mut_seq = copy(seq)
-            i, j = random.sample(range(len(seq)), 2)
-            mut_seq[i], mut_seq[j] = seq[j], seq[i]
-            return mut_seq
-
-    def _replace_mutation(self, seq_to, seq_from, exclusive=False):
-        mut_seq = copy(seq_to)
-        idx = random.randrange(len(seq_to))
-        valid_choices = (
-            [x for x in seq_from if x not in seq_to] if exclusive else seq_from
-        )
-        if valid_choices:
-            mut_seq[idx] = random.choice(valid_choices)
+    # point mutation (better position-wise mutation?)
+    @staticmethod
+    @check_immutable
+    def _swap_replace_mutation(seq, pop):
+        mut_seq = copy(seq)
+        if random.random() < 0.5:  # swap
+            if len(seq) >= 2:
+                i, j = random.sample(range(len(seq)), 2)
+                mut_seq[i], mut_seq[j] = seq[j], seq[i]
+        else:  # replace
+            idx = random.randrange(len(seq))
+            if pop:
+                mut_seq[idx] = random.choice(pop)
         return mut_seq
+
+    @staticmethod
+    def multiset_diff(list1, list2):
+        counter1 = Counter(list1)
+        counter2 = Counter(list2)
+        result = counter1 - counter2
+        return list(result.elements())
 
     @check_immutable
     def mutation(self):
 
         offspring = copy(self)
-
-        # feasible mutation for shuffle is swap
-        if self.fun.__name__ == "shuffle":
-            offspring.val = self._swap_mutation(offspring.val)
-
-        # feasible mutation for sample is swap + excluisive replace
-        elif self.fun.__name__ == "sample":
-            if random.random() < 0.5:
-                offspring.val = self._swap_mutation(offspring.val)
-            else:
-                offspring.val = self._replace_mutation(
-                    offspring.val, self.sequence, exclusive=True
-                )
-
-        # feasible mutation for choices is non-exclusive replace
-        else:  # self.fun.__name__ == 'choices'
-            offspring.val = self._replace_mutation(offspring.val, self.sequence)
-
+        replace_from = {
+            "shuffle": [],
+            "sample": multiset_diff(self.sequence, self.val),
+            "choices": self.sequence,
+        }
+        offspring.val = self._swap_replace_mutation(
+            self.val, replace_from[self.fun.__name__]
+        )
         return offspring
 
     def _swap_crossover(self, seq1, seq2, end_point=False):
@@ -232,9 +228,9 @@ class Random_seq(Dist):
         )
         for i in range(point):
             if cross_seq[i] != seq2[i]:
-                if seq2[i] in cross_seq:
-                    j = cross_seq.index(seq2[i])
-                    cross_seq[i], cross_seq[j] = cross_seq[j], cross_seq[i]
+                if seq2[i] in cross_seq[i + 1 :]:
+                    j = cross_seq[i + 1 :].index(seq2[i])
+                    cross_seq[i], cross_seq[i + j] = cross_seq[i + j], cross_seq[i]
                 elif seq2[i] in seq_from:
                     cross_seq[i] = seq2[i]
         return cross_seq
