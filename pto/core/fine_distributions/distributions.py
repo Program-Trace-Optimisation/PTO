@@ -186,27 +186,35 @@ class Random_seq(Dist):
         return mut_seq
 
     @staticmethod
-    def multiset_diff(list1, list2):
+    def _multiset_diff(list1, list2):
         counter1 = Counter(list1)
         counter2 = Counter(list2)
         result = counter1 - counter2
         return list(result.elements())
 
+    def _replace_from(self):
+        return {
+            "shuffle": {"pop": [], "with_repl": False},
+            "sample": {
+                "pop": self._multiset_diff(self.sequence, self.val),
+                "with_repl": False,
+            },
+            "choices": {"pop": self.sequence, "with_repl": True},
+        }
+
     @check_immutable
     def mutation(self):
 
         offspring = copy(self)
-        replace_from = {
-            "shuffle": [],
-            "sample": self.multiset_diff(self.sequence, self.val),
-            "choices": self.sequence,
-        }
         offspring.val = self._swap_replace_mutation(
-            self.val, replace_from[self.fun.__name__]
+            self.val, self._replace_from()[self.fun.__name__]["pop"]
         )
         return offspring
 
-    def _swap_crossover(self, seq1, seq2, end_point=False):
+    # one-point crossover (better uniform crossover?)
+    @staticmethod
+    @check_immutable
+    def _swap_replace_crossover(seq1, seq2, pop, with_repl=True, end_point=False):
         cross_seq = copy(seq1)
         point = (
             min(len(seq1), len(seq2))
@@ -214,37 +222,18 @@ class Random_seq(Dist):
             else random.randrange(min(len(seq1), len(seq2)))
         )
         for i in range(point):
-            if cross_seq[i] != seq2[i] and seq2[i] in cross_seq:
-                j = cross_seq.index(seq2[i])
+            if cross_seq[i] == seq2[i]:  # match
+                continue
+            if seq2[i] in cross_seq[i + 1 :]:  # swappable
+                j = i + 1 + cross_seq[i + 1 :].index(seq2[i])
                 cross_seq[i], cross_seq[j] = cross_seq[j], cross_seq[i]
-        return cross_seq
-
-    def _swap_replace_crossover(self, seq1, seq2, seq_from, end_point=False):
-        cross_seq = copy(seq1)
-        point = (
-            min(len(seq1), len(seq2))
-            if end_point
-            else random.randrange(min(len(seq1), len(seq2)))
-        )
-        for i in range(point):
-            if cross_seq[i] != seq2[i]:
-                if seq2[i] in cross_seq[i + 1 :]:
-                    j = cross_seq[i + 1 :].index(seq2[i])
-                    cross_seq[i], cross_seq[i + j] = cross_seq[i + j], cross_seq[i]
-                elif seq2[i] in seq_from:
-                    cross_seq[i] = seq2[i]
-        return cross_seq
-
-    def _replace_crossover(self, seq1, seq2, seq_from, end_point=False):
-        cross_seq = copy(seq1)
-        point = (
-            min(len(seq1), len(seq2))
-            if end_point
-            else random.randrange(min(len(seq1), len(seq2)))
-        )
-        for i in range(point):
-            if cross_seq[i] != seq2[i] and seq2[i] in seq_from:
+            elif seq2[i] in pop:  # replaceable
+                if not with_repl:
+                    pop.remove(seq2[i])
+                    pop.append(cross_seq[i])
                 cross_seq[i] = seq2[i]
+            else:  # unmatchable
+                pass
         return cross_seq
 
     @check_immutable
@@ -252,23 +241,11 @@ class Random_seq(Dist):
         if self.fun.__name__ == other.fun.__name__:
             offspring = copy(self)
 
-            # feasible crossover for shuffle is swap
-            if self.fun.__name__ == "shuffle":
-                offspring.val = self._swap_crossover(self.val, other.val)
-
-            # feasible crossover for sample is swap + excluisive replace
-            elif self.fun.__name__ == "sample":
-                offspring.val = self._swap_replace_crossover(
-                    self.val, other.val, self.sequence
-                )
-
-            # feasible crossover for choices is non-exclusive replace
-            else:  # self.fun.__name__ == 'choices'
-                offspring.val = self._replace_crossover(
-                    self.val, other.val, self.sequence
-                )
-
+            offspring.val = self._swap_replace_crossover(
+                self.val, other.val, **self._replace_from()[self.fun.__name__]
+            )
             return offspring
+
         return super().crossover(other)
 
     @check_immutable
