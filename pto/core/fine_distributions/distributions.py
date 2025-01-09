@@ -213,7 +213,7 @@ class Random_seq(Dist):
 
     # one-point crossover (better uniform crossover?)
     @staticmethod
-    @check_immutable
+    # @check_immutable # pop is mutable
     def _swap_replace_crossover(seq1, seq2, pop, with_repl=True, end_point=False):
         cross_seq = copy(seq1)
         point = (
