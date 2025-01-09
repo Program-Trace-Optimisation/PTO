@@ -344,20 +344,14 @@ class Random_seq(Dist):
     def repair(self, other):
         if self.fun.__name__ == other.fun.__name__:
 
-            # feasible repair for shuffle is swap
-            if self.fun.__name__ == "shuffle":
-                self.val = self._swap_crossover(self.val, other.val, end_point=True)
+            self.sample()
 
-            # feasible repair for sample is swap + excluisive replace
-            elif self.fun.__name__ == "sample":
-                self.val = self._swap_replace_crossover(
-                    self.val, other.val, self.sequence, end_point=True
-                )
+            self.val = self._swap_replace_crossover(
+                self.val,
+                other.val,
+                **self._replace_from()[self.fun.__name__],
+                end_point=True
+            )
 
-            # feasible repair for choices is non-exclusive replace
-            else:  # self.fun.__name__ == 'choices'
-                self.val = self._replace_crossover(
-                    self.val, other.val, self.sequence, end_point=True
-                )
         else:
             super().repair(other)
