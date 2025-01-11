@@ -10,7 +10,7 @@ To use PTO in a Google Colab notebook, with some small examples, please click he
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Program-Trace-Optimisation/PTO/blob/main/example.ipynb)
 
 To use PTO with a simple GUI in a Google Colab, please click here:
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Program-Trace-Optimisation/PTO/blob/main/gui/simple_gui.ipynb) 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Program-Trace-Optimisation/PTO/blob/main/pto/gui/simple_gui.ipynb) 
 
 # Installation
 
