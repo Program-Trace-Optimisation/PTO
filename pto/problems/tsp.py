@@ -25,26 +25,50 @@ def make_problem_data(N, random_state=None):
 
 better = min
 
-######################
-# SOLUTION GENERATOR #
-######################
 
 
-# generate a random permutation uniformly at random
-# we cannot use rnd.shuffle() directly - it has to do with mutable arguments
-# and wanting mutation to behave well - it is a long story
-# TODO document this properly.
-# so, we use the Knuth shuffle
-def generator(N):
-    perm = list(range(N))
+##########################
+# ALTERNATIVE GENERATORS #
+##########################
 
-    for i in range(N):
-        j = rnd.choice(
-            range(i, N)
-        )  # NB, not randint(i, N-1) as that treats the result as an ordinal
-        perm[j], perm[i] = perm[i], perm[j]  # swap
+# Several alternative generators for experiments re the new distributions for shuffle, choices, and sample.
+def generator_native(N): 
+    # relies on new native PTO machinery - nothing special needed in the generator
+    x = list(range(N))
+    rnd.shuffle(x)
+    return x
 
-    return perm
+def generator_knuth(N):
+    def _shuffle(L):
+        for i in range(N):
+            j = rnd.choice(
+                range(i, N)
+            )  # NB, not randint(i, N-1) as that treats the result as an ordinal
+            L[j], L[i] = L[i], L[j]  # swap       
+    x = list(range(N))
+    _shuffle(x)
+    return x
+
+def generator_pmx(N):
+    # in-place on L, but a more "naive" shuffle, 
+    # more disruptive, giving PMX-like crossover
+    x = list(range(N))
+    y = []
+    while len(x):
+        n = rnd.choice(x)
+        y.append(n)
+        x.remove(n)
+    return y
+
+
+#####################
+# DEFAULT GENERATOR #
+#####################
+
+# the "obvious" generator, suitable for PTO with custom
+# distributions for shuffle, choices, and sample.
+generator = generator_native 
+
 
 
 ####################
