@@ -100,7 +100,7 @@ class OptimizationGUI:
             [self.start_button, self.stop_button], layout={"gap": "10px"}
         )
 
-        # Create output areas with wider layout
+        # Create output areas with improved layout
         self.output = widgets.Output(
             layout={
                 "width": "100%",  # Changed from 50% to 100%
@@ -117,19 +117,19 @@ class OptimizationGUI:
             }
         )
 
-        # Create horizontal box for output and progress with flex layout
+        # Create horizontal box for output and progress with improved layout
         self.results_box = widgets.HBox(
             [
                 widgets.VBox(
                     [widgets.HTML("<h4>Output:</h4>"), self.output],
                     layout=widgets.Layout(flex="1"),
-                ),  # Added flex
+                ),
                 widgets.VBox(
                     [widgets.HTML("<h4>Progress:</h4>"), self.progress_output],
                     layout=widgets.Layout(flex="1"),
-                ),  # Added flex
+                ),
             ],
-            layout=widgets.Layout(width="100%"),  # Ensure full width
+            layout=widgets.Layout(width="100%", margin="10px 0px"),
         )
 
         # Settings box
@@ -178,6 +178,13 @@ class OptimizationGUI:
         self.update_interval = 10  # Update graph every 10 generations
         self.fig = None  # Store figure reference
         self.ax = None  # Store axes reference
+
+        # Set default example code
+        self.generator_code.value = """def generator():
+    return [rnd.uniform(-10, 10) for _ in range(5)]"""
+
+        self.fitness_code.value = """def fitness(solution):
+    return -sum(x**2 for x in solution)  # Simple negative sum of squares"""
 
     def _create_param_widgets(self):
         """Create widgets for the current solver's parameters"""
@@ -254,13 +261,6 @@ class OptimizationGUI:
         with self.output:
             print("\nStopping optimization...")
 
-        # Set default example code
-        self.generator_code.value = """def generator():
-    return [rnd.uniform(-10, 10) for _ in range(5)]"""
-
-        self.fitness_code.value = """def fitness(solution):
-    return -sum(x**2 for x in solution)  # Simple negative sum of squares"""
-
     def update_progress(self, search_state):
         """Updated callback that reduces flickering and improves performance"""
         individual, fitness, generation = search_state
@@ -298,3 +298,61 @@ class OptimizationGUI:
                     print(f"Current Fitness: {fitness}")
 
         return False
+
+    def run_optimization(self, _):
+        """Run the optimization process"""
+        # Reset stop flag and update button states
+        self.should_stop = False
+        self.start_button.disabled = True
+        self.stop_button.disabled = False
+
+        with self.output:
+            clear_output()
+            try:
+                # Reset fitness history
+                self.fitness_history = []
+
+                # Create functions
+                generator = self.create_function(
+                    self.generator_code.value.strip(), "generator"
+                )
+                fitness = self.create_function(
+                    self.fitness_code.value.strip(), "fitness"
+                )
+
+                # Collect solver parameters
+                solver_args = {
+                    name: widget.value
+                    for name, widget in self.current_param_widgets.items()
+                }
+
+                # Run optimization
+                from pto.core.automatic_names.trans_run import run
+
+                solution = run(
+                    Gen=generator,
+                    Fit=fitness,
+                    better=self.optimization_direction.value,
+                    Solver="hill_climber",
+                    solver_args=solver_args,
+                    callback=self.update_progress,  # Make sure callback is passed
+                )
+
+                if self.should_stop:
+                    print("\nOptimization stopped by user.")
+                else:
+                    print("\nOptimization complete!")
+                print("Solution:", solution)
+
+            except Exception as e:
+                print("Error occurred:")
+                print(traceback.format_exc())
+            finally:
+                # Reset button states
+                self.start_button.disabled = False
+                self.stop_button.disabled = True
+                self.should_stop = False
+
+    def display(self):
+        """Display the GUI"""
+        display(self.gui)
