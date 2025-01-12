@@ -28,6 +28,7 @@ try:
         sphere,
         helloworld,
         tsp,
+        assignment,
         symbolic_regression,
         grammatical_evolution,
         graph_evolution,
@@ -40,6 +41,7 @@ except ImportError:
         sphere,
         helloworld,
         tsp,
+        assignment,
         symbolic_regression,
         grammatical_evolution,
         graph_evolution,
@@ -186,6 +188,35 @@ class TSP(Problem):
         )  # under-estimate: if we could choose the min dist of each row
         self.estimate_average_fitness()
 
+class Assignment(Problem):
+    def __init__(self, cost_matrix=None, resource_matrix=None, agent_capacities=None, 
+                 num_agents=None, num_tasks=None, 
+                 random_state=None):
+        # pass in either the problem data (cost matrix, resource marix, agent capacities)
+        # OR the num_agents and num_tasks and we will generate the problem data
+        super().__init__()
+        if ((cost_matrix is None and num_agents is None) or 
+            (cost_matrix is not None and num_agents is not None)):
+            raise ValueError(
+                "Bad arguments: pass problem data or problem size, not neither and not both"
+            )
+        if random_state is not None and num_agents is None:
+            raise ValueError(
+                "Bad arguments: if passing random_state, must pass random instance size num_agents and num_tasks"
+            )
+        if num_agents is not None:
+            if num_tasks is None:
+                num_tasks = num_agents * 2
+            cost_matrix, resource_matrix, agent_capacities = assignment.generate_gap_instance(num_agents, num_tasks)
+        self.fitness = assignment.fitness
+        self.generator = assignment.generator_native
+        self.gen_args = (num_agents, num_tasks)
+        self.fit_args = (cost_matrix, resource_matrix, agent_capacities)
+        self.better = assignment.better
+        self.opt_fitness = np.sum(
+            np.min(cost_matrix, axis=0)
+        )  # under-estimate: if we could choose the min dist of each row
+        self.estimate_average_fitness()
 
 class SymbolicRegression(Problem):
     def __init__(self, n_samples, n_vars):
@@ -252,6 +283,7 @@ __all__ = [
     "Sphere",
     "HelloWorld",
     "TSP",
+    "Assignment",
     "SymbolicRegression",
     "GrammaticalEvolution",
     "GraphEvolution",
@@ -270,12 +302,13 @@ if __name__ == "__main__":
         HelloWorld(),
         Sphere(5),
         TSP(N=5),
+        Assignment(num_agents=5, num_tasks=10),
         SymbolicRegression(30, 3),
         GrammaticalEvolution(30, 4),
     ]
     for prob in probs:
         print(prob.__class__.__name__)
-        x, fx = run(
+        x, fx, gen = run(
             prob.generator,
             prob.fitness,
             better=prob.better,
