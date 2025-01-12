@@ -179,6 +179,81 @@ class OptimizationGUI:
         self.fig = None  # Store figure reference
         self.ax = None  # Store axes reference
 
+    def _create_param_widgets(self):
+        """Create widgets for the current solver's parameters"""
+        self.current_param_widgets = {}
+        solver = self.solver_choice.value
+        widgets_list = []
+
+        for param_name, param_info in self.solver_params[solver].items():
+            if param_info["type"] == int:
+                widget = widgets.IntText(
+                    value=param_info["value"],
+                    description=param_name,
+                    min=param_info.get("min", None),
+                    style={"description_width": "initial"},
+                    layout={"width": "auto"},
+                )
+            elif param_info["type"] == bool:
+                widget = widgets.Checkbox(
+                    value=param_info["value"],
+                    description=param_name,
+                    layout={"width": "auto"},
+                )
+            elif param_info["type"] == str and "options" in param_info:
+                widget = widgets.Dropdown(
+                    options=param_info["options"],
+                    value=param_info["value"],
+                    description=param_name,
+                    style={"description_width": "initial"},
+                    layout={"width": "auto"},
+                )
+
+            widgets_list.append(widget)
+            self.current_param_widgets[param_name] = widget
+
+        self.params_box.children = widgets_list
+
+    def _on_solver_change(self, change):
+        """Handle solver selection change"""
+        self._create_param_widgets()
+
+    def _toggle_params(self, change):
+        """Toggle parameter visibility"""
+        self.params_box.layout.display = "block" if change["new"] else "none"
+
+    def create_function(self, code_str, func_name):
+        """Create a function with source code accessible via __code__ attribute"""
+        namespace = {}
+        exec(code_str, namespace)
+        func = namespace[func_name]
+
+        new_func = types.FunctionType(
+            func.__code__,
+            func.__globals__,
+            func_name,
+            func.__defaults__,
+            func.__closure__,
+        )
+
+        setattr(new_func, "_source_code", textwrap.dedent(code_str))
+
+        def get_source(obj):
+            return obj._source_code
+
+        import inspect
+
+        inspect.getsource = get_source
+
+        return new_func
+
+    def stop_optimization(self, _):
+        """Handler for stop button click"""
+        self.should_stop = True
+        self.stop_button.disabled = True
+        with self.output:
+            print("\nStopping optimization...")
+
         # Set default example code
         self.generator_code.value = """def generator():
     return [rnd.uniform(-10, 10) for _ in range(5)]"""
