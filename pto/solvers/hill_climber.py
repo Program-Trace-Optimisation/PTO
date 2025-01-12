@@ -73,7 +73,7 @@ class hill_climber:
                 break
 
         if self.return_history:
-            return *search_state, self.history
+            return search_state[0], search_state[1], self.history
         else:
             return search_state  # return result object?
 
