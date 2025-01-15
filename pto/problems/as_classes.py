@@ -28,6 +28,7 @@ try:
         sphere,
         helloworld,
         tsp,
+        k_tsp,
         assignment,
         symbolic_regression,
         grammatical_evolution,
@@ -41,6 +42,7 @@ except ImportError:
         sphere,
         helloworld,
         tsp,
+        k_tsp,
         assignment,
         symbolic_regression,
         grammatical_evolution,
@@ -188,6 +190,32 @@ class TSP(Problem):
         )  # under-estimate: if we could choose the min dist of each row
         self.estimate_average_fitness()
 
+
+class kTSP(Problem):
+    def __init__(self, D=None, N=None, k=None, random_state=None):
+        # pass in a distance matrix D, or else a size N and city visit requirement k, and we will generate a random D
+        super().__init__()
+        if (D is None and N is None) or (D is not None and N is not None):
+            raise ValueError(
+                "Bad arguments: pass exactly 1 of distance matrix D or random instance size N"
+            )
+        if random_state is not None and N is None:
+            raise ValueError(
+                "Bad arguments: if passing random_state, must pass random instance size N"
+            )
+        if N is not None:
+            D = k_tsp.make_problem_data(N, random_state)
+        self.fitness = k_tsp.fitness
+        self.generator = k_tsp.generator
+        self.gen_args = (N, k)
+        self.fit_args = (k, D)
+        self.better = k_tsp.better
+        self.opt_fitness = np.sum(
+            np.min(D, axis=0)
+        )  # under-estimate: if we could choose the min dist of each row
+        self.estimate_average_fitness()
+
+
 class Assignment(Problem):
     def __init__(self, cost_matrix=None, resource_matrix=None, agent_capacities=None, 
                  num_agents=None, num_tasks=None, 
@@ -283,6 +311,7 @@ __all__ = [
     "Sphere",
     "HelloWorld",
     "TSP",
+    "kTSP",
     "Assignment",
     "SymbolicRegression",
     "GrammaticalEvolution",
@@ -302,6 +331,7 @@ if __name__ == "__main__":
         HelloWorld(),
         Sphere(5),
         TSP(N=5),
+        kTSP(N=15, k=5),
         Assignment(num_agents=5, num_tasks=10),
         SymbolicRegression(30, 3),
         GrammaticalEvolution(30, 4),
