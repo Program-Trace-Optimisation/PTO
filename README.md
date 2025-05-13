@@ -14,7 +14,7 @@ To use PTO with a simple GUI in a Google Colab notebook, please click here:
 
 # Installation
 
-`$ pip install git+https://git@github.com:Program-Trace-Optimisation/PTO.git`
+`$ pip install git+https://git@github.com/Program-Trace-Optimisation/PTO.git`
 
 Alternatively, after downloading the code (eg using `git clone`):
 
