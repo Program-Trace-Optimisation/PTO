@@ -11,6 +11,8 @@ class correlogram:
     def __init__(
         self,
         op,
+        better=None,
+        callback=None,
         sample_size=200,  # Number of random solutions to sample
         n_bins=20,  # Resolution of the correlogram
         distance="distance_ind",  # The name of the distance function in 'op'
