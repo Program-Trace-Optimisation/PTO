@@ -1,6 +1,6 @@
 import unittest
 
-from pto.solvers import genetical_algorithm as GA, hill_cimber as HC, random_search as RS, particle_swarm_optimisation as PSO
+from pto.solvers import genetic_algorithm as GA, hill_climber as HC, random_search as RS, particle_swarm_optimisation as PSO
 from pto.core.base import Op, tracer, Dist
 
 import random
