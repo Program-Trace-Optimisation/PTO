@@ -1,6 +1,11 @@
 import math
 import random
 import numpy as np
+try:
+    from scipy import stats
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
 
 
 class correlogram:
@@ -19,7 +24,7 @@ class correlogram:
         verbose=False,
         n_bins=None,  # Number of bins for distance binning (default: walk_len)
         bin_width=None,  # Alternative: specify bin width instead of n_bins
-        min_pairs_per_bin=10,  # Minimum pairs required for reliable correlation estimate
+        min_pairs_per_bin=5,  # Minimum pairs required for reliable correlation estimate
         **kwargs,
     ):
         self.op = op
@@ -31,8 +36,6 @@ class correlogram:
         self.n_bins = n_bins
         self.bin_width = bin_width
         self.min_pairs_per_bin = min_pairs_per_bin
-
-        self.batch_size = 100
 
         # Set-up search operators
         # We assume op has create_ind, evaluate_ind, and the distance function
@@ -49,10 +52,10 @@ class correlogram:
 
         # 1. Calculate avg_dist in the space
         if self.verbose:
-            print(f"Sampling batches of {self.batch_size} solutions...")
+            print(f"Calculating avg_dist...")
         avg_dist = self.avg_dist() # avg distance between pair
         diameter = avg_dist * 2
-        walk_len = max(int(diameter), 20) # TODO
+        walk_len = 20 # TODO
         self.n_walks = self.n_samples // walk_len
         
 
@@ -78,7 +81,33 @@ class correlogram:
         records = np.array(records)
 
         # 4. Bins and correlations
-        def correlation(a, b): return np.corrcoef(a, b)[0, 1]
+        def correlation_with_pvalue(a, b):
+            """Calculate correlation coefficient and p-value"""
+            if HAS_SCIPY:
+                try:
+                    r, p = stats.pearsonr(a, b)
+                    return r, p
+                except (FloatingPointError, ValueError):
+                    # Handle numerical issues with very strong correlations
+                    r = np.corrcoef(a, b)[0, 1]
+                    # If correlation is very strong and sample is large, p-value is effectively 0
+                    if len(a) > 100 and abs(r) > 0.99:
+                        p = 0.0
+                    else:
+                        p = np.nan
+                    return r, p
+            else:
+                # Fallback: compute correlation, estimate p-value manually
+                r = np.corrcoef(a, b)[0, 1]
+                # Simple p-value approximation using t-distribution
+                n = len(a)
+                if n > 2:
+                    t = r * np.sqrt((n - 2) / (1 - r**2 + 1e-10))
+                    # Two-tailed p-value approximation
+                    p = 2 * (1 - np.clip(np.abs(t) / np.sqrt(n), 0, 1))
+                else:
+                    p = np.nan
+                return r, p
 
         # Check if distances are all integers
         distances = records[:, 2]
@@ -89,6 +118,8 @@ class correlogram:
 
         x_axis = []
         y_axis = []
+        p_axis = []
+        n_axis = []
 
         if use_binning:
             # Use binning for real-valued distances
@@ -128,18 +159,28 @@ class correlogram:
                 if self.verbose:
                     print(f"Bin {i+1}/{len(bin_centers)}: [{lower:.2f}, {upper:.2f}), center={bin_centers[i]:.2f}, pairs={len(pairs)}")
 
-                if len(pairs) < self.min_pairs_per_bin:
+                n_pairs = len(pairs)
+                n_axis.append(n_pairs)
+
+                if n_pairs < self.min_pairs_per_bin:
                     y_axis.append(np.nan)
+                    p_axis.append(np.nan)
                 else:
-                    y_axis.append(correlation(pairs[:, 0], pairs[:, 1]))
+                    r, p = correlation_with_pvalue(pairs[:, 0], pairs[:, 1])
+                    y_axis.append(r)
+                    p_axis.append(p)
                 x_axis.append(bin_centers[i])
 
             # Add a final bin for distances beyond the last bin edge
             pairs = records[distances > bin_edges[-1]][:, :2]
-            if len(pairs) >= self.min_pairs_per_bin:
+            n_pairs = len(pairs)
+            if n_pairs >= self.min_pairs_per_bin:
                 # Use a distance slightly beyond the last bin center
                 x_axis.append(bin_centers[-1] + (bin_edges[-1] - bin_centers[-1]))
-                y_axis.append(correlation(pairs[:, 0], pairs[:, 1]))
+                r, p = correlation_with_pvalue(pairs[:, 0], pairs[:, 1])
+                y_axis.append(r)
+                p_axis.append(p)
+                n_axis.append(n_pairs)
 
         else:
             # Use exact integer distances (original behavior)
@@ -151,20 +192,29 @@ class correlogram:
                 if self.verbose:
                     print(f"computing for {d}")
                 pairs = records[distances == d][:, :2]
+                n_pairs = len(pairs)
                 if self.verbose:
-                    print(f"number of pairs {len(pairs)}")
-                if len(pairs) < self.min_pairs_per_bin:
+                    print(f"number of pairs {n_pairs}")
+                n_axis.append(n_pairs)
+                if n_pairs < self.min_pairs_per_bin:
                     y_axis.append(np.nan)
+                    p_axis.append(np.nan)
                 else:
-                    y_axis.append(correlation(pairs[:, 0], pairs[:, 1]))
+                    r, p = correlation_with_pvalue(pairs[:, 0], pairs[:, 1])
+                    y_axis.append(r)
+                    p_axis.append(p)
                 x_axis.append(d)
 
             # correlation of the fi, fj values greater than the max distance
             d = walk_len + 1
             pairs = records[distances >= d][:, :2]
-            if len(pairs) >= self.min_pairs_per_bin:
+            n_pairs = len(pairs)
+            if n_pairs >= self.min_pairs_per_bin:
                 x_axis.append(d)
-                y_axis.append(correlation(pairs[:, 0], pairs[:, 1]))
+                r, p = correlation_with_pvalue(pairs[:, 0], pairs[:, 1])
+                y_axis.append(r)
+                p_axis.append(p)
+                n_axis.append(n_pairs)
 
         # Filter out NaN values before calculating correlation length
         x_axis_filtered = []
@@ -180,7 +230,7 @@ class correlogram:
         else:
             cor_len = np.nan
 
-        return x_axis, y_axis, cor_len, diameter
+        return x_axis, y_axis, p_axis, n_axis, cor_len, diameter
 
 
     ###################
@@ -205,29 +255,31 @@ class correlogram:
     
     def avg_dist(self):
         """
-        Moving average of distance over pairs
-        
-        
+        Estimate average distance between random individuals by sampling pairs
         """
-        delta = 1e6
-        # initial large sample
         dists = []
-        pop = [self.op.create_ind() for _ in range(100)]
-        for i in range(len(pop)):
-            for j in range(i + 1, len(pop)):
-                d = self.op.distance_ind(pop[i], pop[j])
-                dists.append(d)
-        avg = np.mean(dists)
-        n = 100
-        # keep sampling until we converge
-        while delta > self.avg_dist_tolerance:
+        prev_avg = 0
+
+        while True:
+            # Sample a pair
             x, y = [self.op.create_ind() for _ in range(2)]
             d = self.op.distance_ind(x, y)
-            newavg = avg + (d - avg) / n
-            delta = abs(newavg - avg)
-            avg = newavg
-            n += 1
-        return avg
+            dists.append(d)
+
+            # Check convergence every 100 samples
+            if len(dists) % 100 == 0:
+                avg = np.mean(dists)
+                if len(dists) >= 200 and abs(avg - prev_avg) < self.avg_dist_tolerance:
+                    if self.verbose:
+                        print(f"avg_dist converged after {len(dists)} samples: {avg:.4f}")
+                    return avg
+                prev_avg = avg
+
+            # Safety: max samples
+            if len(dists) >= 10000:
+                if self.verbose:
+                    print(f"avg_dist reached max samples (10000): {np.mean(dists):.4f}")
+                return np.mean(dists)
     
     def correlation_length(self, x_axis, y_axis, threshold=0.01):
         """

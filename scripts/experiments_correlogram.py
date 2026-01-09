@@ -31,13 +31,14 @@ problems_sizess_budgetss_ctors = [
         # ('TSP', (8, 16, 24), (5000, 50000, 100000), (lambda s: TSP(N=s))), 
         # ('kTSP', (20, 40, 60), (10000, 30000, 100000), (lambda s: kTSP(N=s, k=s // 4))), # choose k cities from N
         # ('Assignment', (10, 20, 30), (10000, 30000, 100000), (lambda s: Assignment(num_agents=s))),
-        # ('SymbolicRegression', (6, 9, 12), (8000, 20000, 100000), (lambda s: SymbolicRegression(s*20, s))), 
-        # ('GrammaticalEvolution', (3, 6, 9), (2000, 10000, 30000), (lambda s: GrammaticalEvolution(s*20, s))), 
-        # ('NeuralNetwork', (2, 4, 6), (3000, 10000, 50000), (lambda s: NeuralNetwork(s, int(s*1.5), s, s*20))) # s*1.5 is the max_hidden
+        ('SymbolicRegression', (6, 9, 12), (8000, 20000, 100000), (lambda s: SymbolicRegression(s*20, s))), 
+        ('GrammaticalEvolution', (3, 6, 9), (2000, 10000, 30000), (lambda s: GrammaticalEvolution(s*20, s))), 
+        ('NeuralNetwork', (2, 4, 6), (3000, 10000, 50000), (lambda s: NeuralNetwork(s, int(s*1.5), s, s*20))) # s*1.5 is the max_hidden
 ]
 
 size_cats = ["small", "medium", "large"]
 size_cats = ['small', 'medium'] # for testing
+
 
 
 
@@ -59,7 +60,7 @@ def run_one_correlogram_rep(rep):
                         # RUN correlogram
                         seed(rep) # random.seed(rep)
                         start_time = time.time()
-                        x_axis, y_axis, cor_length, diameter = run(problem.generator,
+                        x_axis, y_axis, p_axis, n_axis, cor_length, diameter = run(problem.generator,
                                              problem.fitness,
                                              gen_args=problem.gen_args,
                                              fit_args=problem.fit_args,
@@ -73,9 +74,9 @@ def run_one_correlogram_rep(rep):
                         elapsed = end_time - start_time
                         onestep_cor = y_axis[0]
 
-                        # Save x_axis and y_axis to CSV
+                        # Save x_axis, y_axis, p_axis, and n_axis to CSV
                         csv_filename = f'outputs/results_2026_01_07_correlogram_xy_{problem.__class__.__name__}_{size}_{size_cat}_{budget}_{dist_type}_{name_type}_rep{rep}.csv'
-                        xy_df = pd.DataFrame({'x_axis': x_axis, 'y_axis': y_axis})
+                        xy_df = pd.DataFrame({'x_axis': x_axis, 'y_axis': y_axis, 'p_axis': p_axis, 'n_axis': n_axis})
                         xy_df.to_csv(csv_filename, index=False)
 
                         print(f'{problem.__class__.__name__} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {rep} {elapsed} {cor_length} {onestep_cor} {diameter}')
