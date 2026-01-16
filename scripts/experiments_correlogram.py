@@ -85,7 +85,9 @@ def run_one_correlogram_rep(rep):
             problem = ctor(size)
 
             for solver in ["correlogram"]: # a dummy "solver"
-                solver_args = {'avg_dist_tolerance': 0.1, 'n_walks': 5, 'verbose': True} # any other args needed for correlogram? 
+                solver_args = {'avg_dist_tolerance': 0.1, 'n_walks': 5, 'verbose': True} # any other args needed for correlogram?
+                if "BFS" in problem_name:
+                    solver_args['run_structural_mutation_filter'] = True 
                 for dist_type in ['coarse']: # ['coarse', 'fine']:
                     for name_type in ['lin', 'str']:
                         for generator in generators[problem_name]:
@@ -99,11 +101,13 @@ def run_one_correlogram_rep(rep):
                                 generator_name = "sr-depth-gen"
                             else:
                                 raise ValueError("Unexpected generator")
+                            
+
 
                             # RUN correlogram
                             seed(rep) # random.seed(rep)
                             start_time = time.time()
-                            x_axis, y_axis, p_axis, n_axis, cor_length, diameter, onestep_cor = run(generator,
+                            x_axis, y_axis, p_axis, n_axis, cor_length, diameter, onestep_cor, sr_structural_change_cor, sr_average_parent_length = run(generator,
                                                 problem.fitness,
                                                 gen_args=problem.gen_args,
                                                 fit_args=problem.fit_args,
@@ -121,10 +125,10 @@ def run_one_correlogram_rep(rep):
                             xy_df = pd.DataFrame({'x_axis': x_axis, 'y_axis': y_axis, 'p_axis': p_axis, 'n_axis': n_axis})
                             xy_df.to_csv(csv_filename, index=False)
 
-                            print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {cor_length} {onestep_cor} {diameter}')
-                            results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, cor_length, onestep_cor, diameter))
+                            print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {cor_length} {onestep_cor} {diameter} {sr_structural_change_cor} {sr_average_parent_length}')
+                            results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, cor_length, onestep_cor, diameter, sr_structural_change_cor, sr_average_parent_length))
 
-    columns = "problem size size_cat solver budget dist_type name_type generator rep elapsed cor_length onestep_cor diameter".split(" ")
+    columns = "problem size size_cat solver budget dist_type name_type generator rep elapsed cor_length onestep_cor diameter sr_structural_change_cor sr_average_parent_length".split(" ")
     df = pd.DataFrame.from_records(columns=columns, data=results)
     return df                
 
@@ -144,6 +148,16 @@ def run_one_solver_rep(rep):
                 for dist_type in ['coarse']: # ['coarse', 'fine']:
                     for name_type in ['lin', 'str']:
                         for generator in generators[problem_name]:
+                            if generator == onemax_gen:
+                                generator_name = "one-max"
+                            elif generator == sphere_gen:
+                                generator_name = "sphere-gen"
+                            elif generator == sr_gen:
+                                generator_name = "sr-gen"
+                            elif generator == sr_depth_gen:
+                                generator_name = "sr-depth-gen"
+                            else:
+                                raise ValueError("Unexpected generator")                            
                         
 
                             # RUN SA
@@ -163,12 +177,12 @@ def run_one_solver_rep(rep):
                             elapsed = end_time - start_time
                             norm_fx = problem.normalise_fitness(fx)
 
-                            filename = f'outputs/history_{problem.__class__.__name__}_{size}_{size_cat}_{solver}_{budget}_{dist_type}_{name_type}_{generator.__name__}_{rep}.pdf'.replace(' ', '_')
+                            filename = f'outputs/history_{problem_name}_{size}_{size_cat}_{solver}_{budget}_{dist_type}_{name_type}_{generator_name}_{rep}.pdf'.replace(' ', '_')
                             history_df = pd.DataFrame(history, columns=['fitness'])
                             history_df.to_csv(filename)
 
-                            print(f'{problem.__class__.__name__} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator.__name__} {rep} {elapsed} {fx} {norm_fx} "{pheno}" "{geno}"')
-                            results.append((problem.__class__.__name__, size, size_cat, solver, budget, dist_type, name_type, generator.__name__, rep, elapsed, fx, norm_fx, str(pheno), str(geno)))
+                            print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {fx} {norm_fx} "{pheno}" "{geno}"')
+                            results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, fx, norm_fx, str(pheno), str(geno)))
 
 
     columns = "problem size size_cat solver budget dist_type name_type generator rep elapsed fx norm_fx pheno geno".split(" ")

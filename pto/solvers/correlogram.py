@@ -25,6 +25,7 @@ class correlogram:
         n_bins=None,  # Number of bins for distance binning (default: walk_len)
         bin_width=None,  # Alternative: specify bin width instead of n_bins
         min_pairs_per_bin=5,  # Minimum pairs required for reliable correlation estimate
+        run_structural_mutation_filter=False, # some generators benefit from an extra analysis - switch it on manually if needed
         **kwargs,
     ):
         self.op = op
@@ -36,6 +37,7 @@ class correlogram:
         self.n_bins = n_bins
         self.bin_width = bin_width
         self.min_pairs_per_bin = min_pairs_per_bin
+        self.run_structural_mutation_filter = run_structural_mutation_filter
 
         # Set-up search operators
         # We assume op has create_ind, evaluate_ind, and the distance function
@@ -249,7 +251,14 @@ class correlogram:
         else:
             cor_len = np.nan
 
-        return x_axis, y_axis, p_axis, n_axis, cor_len, diameter, onestep_cor
+        if self.run_structural_mutation_filter:
+            n = 100
+            min_len = 0
+            sr_structural_change_cor, sr_average_parent_length = self.analyze_mutation_operator(n, min_len)
+        else:
+            sr_structural_change_cor, sr_average_parent_length = 0, 0
+
+        return x_axis, y_axis, p_axis, n_axis, cor_len, diameter, onestep_cor, sr_structural_change_cor, sr_average_parent_length
 
 
     ###################
@@ -353,3 +362,38 @@ class correlogram:
         # If threshold not crossed, return the max distance
         return np.max(x)
 
+
+    def analyze_mutation_operator(self, num_iterations=100, min_len=0):
+        parent_fitnesses = []
+        offspring_fitnesses = []
+        parent_geno_lengths = []
+
+        for _ in range(num_iterations):
+            parent_sol = None
+            # Retry generating parent solution until its genotype length is at least min_len
+            while parent_sol is None or len(parent_sol.geno) < min_len:
+                parent_sol = self.op.create_ind()
+
+            # 2. Mutate the parent solution to create an offspring
+            offspring_sol = self.op.mutate_ind(parent_sol)
+            # Resample offspring until its genotype length is different from parent's
+            while len(offspring_sol.geno) == len(parent_sol.geno):
+                offspring_sol = self.op.mutate_ind(parent_sol)
+
+            # 3. Compute the fitness for both parent and offspring
+            parent_fit = self.op.evaluate_ind(parent_sol)
+            offspring_fit = self.op.evaluate_ind(offspring_sol)
+
+            parent_fitnesses.append(parent_fit)
+            offspring_fitnesses.append(offspring_fit)
+
+            # Get length of parent genotype (trace)
+            parent_geno_lengths.append(len(parent_sol.geno))
+
+        # 5. Compute the correlation between parent and offspring fitness
+        correlation = np.corrcoef(parent_fitnesses, offspring_fitnesses)[0, 1]
+
+        # 6. Return the average length of parent trace
+        average_parent_length = np.mean(parent_geno_lengths)
+
+        return correlation, average_parent_length
