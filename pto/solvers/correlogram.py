@@ -18,7 +18,7 @@ class correlogram:
         self,
         op,
         avg_dist_tolerance=0.1,  # In preliminary sampling: continue sampling pairs til avg_distance converges to within this
-        n_samples=1000, 
+        n_samples=20, 
         mutate="mutate_ind",
         distance="distance_ind",  # The name of the distance function in 'op'
         verbose=False,
@@ -63,8 +63,27 @@ class correlogram:
         # and evaluate them
         if self.verbose:
             print("Running random walks and evaluating population")
-        population = self.run_random_walks(walk_len)
+        population, walks = self.run_random_walks(walk_len)
         fitness = self.evaluate_pop(population)
+
+        # Calculate one-step correlation from consecutive steps in walks
+        onestep_correlations = []
+        for walk_indices in walks:
+            walk_fitness = [fitness[i] for i in walk_indices]
+            if len(walk_fitness) >= 2:
+                # Correlation between f_i and f_{i+1} within this walk
+                f_i = walk_fitness[:-1]  # all but last
+                f_i_plus_1 = walk_fitness[1:]  # all but first
+                if len(f_i) >= 2:  # need at least 2 pairs
+                    r = np.corrcoef(f_i, f_i_plus_1)[0, 1]
+                    if not np.isnan(r):
+                        onestep_correlations.append(r)
+
+        # Average one-step correlation across all walks
+        if len(onestep_correlations) > 0:
+            onestep_cor = np.mean(onestep_correlations)
+        else:
+            onestep_cor = np.nan
 
 
         # 3. Compute Pairwise Distances and Correlations
@@ -230,7 +249,7 @@ class correlogram:
         else:
             cor_len = np.nan
 
-        return x_axis, y_axis, p_axis, n_axis, cor_len, diameter
+        return x_axis, y_axis, p_axis, n_axis, cor_len, diameter, onestep_cor
 
 
     ###################
@@ -245,13 +264,18 @@ class correlogram:
         
     def run_random_walks(self, walk_len):
         pop = []
+        walks = []  # Store indices for each walk
         for i in range(self.n_walks):
+            walk_indices = []
             x = self.op.create_ind()
             pop.append(x)
+            walk_indices.append(len(pop) - 1)
             for j in range(walk_len - 1):
                 x = self.op.mutate_ind(x)
                 pop.append(x)
-        return pop
+                walk_indices.append(len(pop) - 1)
+            walks.append(walk_indices)
+        return pop, walks
     
     def avg_dist(self):
         """

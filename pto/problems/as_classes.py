@@ -247,15 +247,16 @@ class Assignment(Problem):
         self.estimate_average_fitness()
 
 class SymbolicRegression(Problem):
-    def __init__(self, n_samples, n_vars):
+    def __init__(self, n_samples, n_vars, target_gen=None):
         super().__init__()
+        if target_gen is None: target_gen = symbolic_regression.cnf_generator
         self.fitness = symbolic_regression.fitness
         self.generator = symbolic_regression.generator
         func_set = [("and", 2), ("or", 2), ("not", 1)]
         term_set = [f"x[{i}]" for i in range(n_vars)]
         self.gen_args = (func_set, term_set)
         self.fit_args = symbolic_regression.make_training_data(
-            n_samples, n_vars, func_set, term_set
+            n_samples, n_vars, func_set, term_set, target_gen
         )  # return (X_train, y_train)
         self.better = symbolic_regression.better
         self.opt_fitness = 0.0
