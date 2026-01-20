@@ -95,7 +95,7 @@ better = min
 
 
 # generate random expression
-def generator(func_set, term_set):
+def generator(func_set, term_set, max_depth=6):
 
     def rnd_expr(depth):  # Growth Initialisation
         if depth <= 0 or rnd.random() < len(term_set) / (len(term_set) + len(func_set)):
@@ -108,12 +108,11 @@ def generator(func_set, term_set):
                 expr = "(%s %s %s)" % (rnd_expr(depth - 1), func, rnd_expr(depth - 1))
         return expr
 
-    max_depth = 6
     return rnd_expr(max_depth)
 
 
 # generate random expression: avoid too many trivial-sized trees
-def generator_depth(func_set, term_set):
+def generator_depth(func_set, term_set, max_depth=6):
 
     def rnd_expr(depth):  # Growth Initialisation
         if depth <= 0 or rnd.random() < 1.0 / depth: 
@@ -126,7 +125,6 @@ def generator_depth(func_set, term_set):
                 expr = "(%s %s %s)" % (rnd_expr(depth - 1), func, rnd_expr(depth - 1))
         return expr
 
-    max_depth = 6
     return rnd_expr(max_depth)
 
 

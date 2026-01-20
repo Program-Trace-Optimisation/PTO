@@ -20,6 +20,7 @@ from pto import run, rnd
 # from pto.core import choice
 from statistics import mean
 import numpy as np  # used in TSP
+import math
 
 try:
     # Use absolute imports for when the file is run as a script
@@ -254,7 +255,8 @@ class SymbolicRegression(Problem):
         self.generator = symbolic_regression.generator
         func_set = [("and", 2), ("or", 2), ("not", 1)]
         term_set = [f"x[{i}]" for i in range(n_vars)]
-        self.gen_args = (func_set, term_set)
+        max_depth = 1 + math.ceil(math.log2(len(term_set)))
+        self.gen_args = (func_set, term_set, max_depth)
         self.fit_args = symbolic_regression.make_training_data(
             n_samples, n_vars, func_set, term_set, target_gen
         )  # return (X_train, y_train)
