@@ -57,7 +57,7 @@ class correlogram:
             print(f"Calculating avg_dist...")
         avg_dist = self.avg_dist() # avg distance between pair
         diameter = avg_dist * 2
-        walk_len = 20 # TODO
+        walk_len = 20 # TODO should we incorporate diameter here?
         self.n_walks = self.n_samples // walk_len
         
 
@@ -252,7 +252,7 @@ class correlogram:
             cor_len = np.nan
 
         if self.run_structural_mutation_filter:
-            n = 100
+            n = 10000
             min_len = 0
             sr_structural_change_cor, sr_average_parent_length = self.analyze_mutation_operator(n, min_len)
         else:
@@ -363,7 +363,7 @@ class correlogram:
         return np.max(x)
 
 
-    def analyze_mutation_operator(self, num_iterations=100, min_len=0):
+    def analyze_mutation_operator(self, num_iterations=10000, min_len=0):
         parent_fitnesses = []
         offspring_fitnesses = []
         parent_geno_lengths = []

@@ -18,31 +18,26 @@ from pto.problems.sphere import generator as sphere_gen
 from pto.problems.symbolic_regression import generator as sr_gen, generator_depth as sr_depth_gen
 from pto.problems.symbolic_regression import cnf_generator as sr_target_cnf, full as sr_target_full, even_parity as sr_evenparity_gen
 
-# Simulated Annealing as the only solver because it is simple, generic, reliable
-# no crossover
+# RS, HC, GA
 # 1 generator per problem
+# (3 distinct problem-generators for BFS)
 # 1 mutation
 # 1 distance
 # 3 sizes
-# 2 name types, 2 dist types
+# 2 name types
+# 1 dist type
 # try random sampling versus random walk as correlogram walks
 
-
+# ('HelloWorld', (8, 16, 32), (500, 2000, 6000), (lambda s: HelloWorld(target='A'*s))),
 problems_sizess_budgetss_ctors = [
         # each row is (problem_name, sizes, budgets, constructor fn given only size)
-        ('OneMax', (8, 16, 32), (50, 200, 1000), (lambda s: OneMax(s))),
-        # ('HelloWorld', (8, 16, 32), (500, 2000, 6000), (lambda s: HelloWorld(target='A'*s))),
-        ('Sphere', (8, 16, 32), (100, 500, 5000), (lambda s: Sphere(s))),
-        # ('TSP', (8, 16, 24), (5000, 50000, 100000), (lambda s: TSP(N=s))), 
-        # ('kTSP', (20, 40, 60), (10000, 30000, 100000), (lambda s: kTSP(N=s, k=s // 4))), # choose k cities from N
-        # ('Assignment', (10, 20, 30), (10000, 30000, 100000), (lambda s: Assignment(num_agents=s))),
+        ('OneMax', (10, 50, 100), (10000, 50000, 200000), (lambda s: OneMax(s))),
+        ('Sphere', (10, 20, 40), (10000, 50000, 200000), (lambda s: Sphere(s))),
 
         # several different problems in boolean function synthesis. two sets of synthetic problems, and even-parity
-        ('BFS-CNF', (6, 9, 12), (8000, 20000, 100000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_target_cnf))), 
-        ('BFS-Full', (6, 9, 12), (8000, 20000, 100000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_target_full))), 
-        ('BFS-EvenParity', (6, 9, 12), (8000, 20000, 100000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_evenparity_gen))),
-        #('GrammaticalEvolution', (3, 6, 9), (2000, 10000, 30000), (lambda s: GrammaticalEvolution(s*20, s))), 
-        #('NeuralNetwork', (2, 4, 6), (3000, 10000, 50000), (lambda s: NeuralNetwork(s, int(s*1.5), s, s*20))) # s*1.5 is the max_hidden
+        ('BFS-CNF', (6, 12, 18), (10000, 50000, 200000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_target_cnf))), 
+        ('BFS-Full', (6, 12, 18), (10000, 50000, 200000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_target_full))), 
+        ('BFS-EvenParity', (6, 12, 18), (10000, 50000, 200000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_evenparity_gen))),
 ]
 
 def solvers_argss(solver, budget):
@@ -69,9 +64,9 @@ size_cats = ["small", "medium", "large"]
 generators = {
     "OneMax": (onemax_gen,),
     "Sphere": (sphere_gen,),
-    "BFS-CNF": (sr_gen, sr_depth_gen),
-    "BFS-Full": (sr_gen, sr_depth_gen),
-    "BFS-EvenParity": (sr_gen, sr_depth_gen),
+    "BFS-CNF": (sr_depth_gen,),
+    "BFS-Full": (sr_depth_gen,),
+    "BFS-EvenParity": (sr_depth_gen,),
 }
 
 def run_one_correlogram_rep(rep):
@@ -84,8 +79,11 @@ def run_one_correlogram_rep(rep):
             print(problem_name, size, budget)
             problem = ctor(size)
 
+            if "BFS" in problem_name:
+                assert size % 3 == 0 # symbolic_regression.py (BFS) generators assume this
+
             for solver in ["correlogram"]: # a dummy "solver"
-                solver_args = {'avg_dist_tolerance': 0.1, 'n_walks': 5, 'verbose': True} # any other args needed for correlogram?
+                solver_args = {'avg_dist_tolerance': 0.1, 'n_walks': 20, 'verbose': True} # any other args needed for correlogram?
                 if "BFS" in problem_name:
                     solver_args['run_structural_mutation_filter'] = True 
                 for dist_type in ['coarse']: # ['coarse', 'fine']:
@@ -141,10 +139,32 @@ def run_one_solver_rep(rep):
             print(problem_name, size, budget)
             problem = ctor(size)
 
-            budget = 100
+            def make_callback(better=min, pop_based=False, n_iters_no_improve=100):
+                history = []
+                def terminate_opt_no_improve(search_state):
 
-            for solver in ["random_search", "hill_climber", "genetic_algorithm"]: 
+                    # update state
+                    if pop_based:
+                        population, fitness_population, gen = search_state
+                        fitness_individual = better(fitness_population)
+                    else:
+                        individual, fitness_individual, gen = search_state
+                    history.append(fitness_individual)
+
+                    # check for early termination
+                    if fitness_individual == problem.opt_fitness:
+                        print("print OPT")
+                        return True
+                    if len(history) > n_iters_no_improve:
+                        if len(set(fit for fit in history[-n_iters_no_improve:])) == 1:
+                            print("print NO IMPROVEMENT")
+                            return True
+                    return False
+                return terminate_opt_no_improve
+
+            for solver in ["genetic_algorithm", "random_search", "hill_climber"]: 
                 solver_args = solvers_argss(solver, budget)
+
                 for dist_type in ['coarse']: # ['coarse', 'fine']:
                     for name_type in ['lin', 'str']:
                         for generator in generators[problem_name]:
@@ -157,10 +177,35 @@ def run_one_solver_rep(rep):
                             elif generator == sr_depth_gen:
                                 generator_name = "sr-depth-gen"
                             else:
-                                raise ValueError("Unexpected generator")                            
+                                raise ValueError("Unexpected generator") 
+                            
+                            if solver == 'genetic_algorithm' or solver == 'particle_swarm_optimisation':
+                                # stop if no improvement during a segment of length 50% of the run
+
+                                # history counted in generations
+                                callback = make_callback(problem.better, pop_based=True, 
+                                                         n_iters_no_improve=int(np.sqrt(budget) / 2.0))
+                            else:
+                                # history counted in individuals
+                                callback = make_callback(problem.better, pop_based=False, 
+                                                         n_iters_no_improve=int(budget / 2.0))
+
+                            # unnecessary combination
+                            if solver == 'random_search':
+                                if name_type == 'str': continue
+                                if dist_type == 'fine': continue
+
+                            # hacks for quick investigation runs
+
+                            # if dist_type != 'coarse': continue
+                            # if name_type != 'str': continue
+                            # if problem_name != 'OneMax': continue
+                            # if size_cat != "small": continue
+                            # if solver != 'hill_climber': continue
+                            # if generator != onemax_gen: continue                        
                         
 
-                            # RUN SA
+                            # RUN solver
                             seed(rep) # random.seed(rep)
                             start_time = time.time()
                             (pheno, geno), fx, history = run(generator, 
@@ -171,23 +216,64 @@ def run_one_solver_rep(rep):
                                                              solver_args=solver_args,
                                                              better=problem.better,
                                                              dist_type=dist_type,
-                                                             name_type=name_type)
+                                                             name_type=name_type,
+                                                             callback=callback,
+                            )
 
                             end_time = time.time()
                             elapsed = end_time - start_time
                             norm_fx = problem.normalise_fitness(fx)
+                            geno_size = len(geno)
+                            hist_len = len(history)
 
-                            filename = f'outputs/history_{problem_name}_{size}_{size_cat}_{solver}_{budget}_{dist_type}_{name_type}_{generator_name}_{rep}.pdf'.replace(' ', '_')
-                            history_df = pd.DataFrame(history, columns=['fitness'])
+                            # Downsample history for hill_climber and random_search to avoid huge files
+                            if solver in ['hill_climber', 'random_search']:
+                                history_to_save = downsample_history(history, max_samples=1000)
+                            else:
+                                history_to_save = history
+
+                            filename = f'outputs/history_{problem_name}_{size}_{size_cat}_{solver}_{budget}_{dist_type}_{name_type}_{generator_name}_{rep}.csv'.replace(' ', '_')
+                            history_df = pd.DataFrame(history_to_save, columns=['fitness'])
                             history_df.to_csv(filename)
 
-                            print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {fx} {norm_fx} "{pheno}" "{geno}"')
-                            results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, fx, norm_fx, str(pheno), str(geno)))
+                            print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {fx} {norm_fx} {geno_size} {hist_len} "{pheno}" "{geno}"')
+                            results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, fx, norm_fx, geno_size, hist_len, str(pheno), str(geno)))
 
 
-    columns = "problem size size_cat solver budget dist_type name_type generator rep elapsed fx norm_fx pheno geno".split(" ")
+    columns = "problem size size_cat solver budget dist_type name_type generator rep elapsed fx norm_fx geno_size hist_len pheno geno".split(" ")
     df = pd.DataFrame.from_records(columns=columns, data=results)
     return df
+
+
+def downsample_history(history, max_samples=1000):
+    """
+    Downsample history to at most max_samples, always keeping first and last values.
+
+    Args:
+        history: list of fitness values
+        max_samples: maximum number of samples to keep
+
+    Returns:
+        downsampled list of fitness values
+    """
+    if len(history) <= max_samples:
+        return history
+
+    # Always keep first and last
+    downsampled = [history[0]]
+
+    # Sample evenly from the middle
+    # We need (max_samples - 2) samples from the middle
+    middle_samples = max_samples - 2
+    indices = np.linspace(1, len(history) - 2, middle_samples, dtype=int)
+
+    for idx in indices:
+        downsampled.append(history[idx])
+
+    # Add the last value
+    downsampled.append(history[-1])
+
+    return downsampled
     
 
 if __name__ == '__main__':
@@ -196,14 +282,15 @@ if __name__ == '__main__':
     df.to_csv('outputs/results_2026_01_07_correlogram.csv')
     import sys; sys.exit()
 
-    n_reps = 10
-    # with Pool() as pool:
-    #     results_dfs = pool.map(run_one_solver_rep, range(n_reps))
+    # df = run_one_solver_rep(0)
+
+    # n_reps = 7
+    # import os
+    # with Pool(processes=os.cpu_count() - 1) as pool:
+    #     results_dfs = pool.map(run_one_solver_rep, range(n_reps, n_reps*3))
     #     combined_df = pd.concat(results_dfs, ignore_index=True)
-    # combined_df.to_csv('outputs/results_2026_01_07_correlogram_solver.csv')
-    with Pool() as pool:
-        results_dfs = pool.map(run_one_correlogram_rep, range(n_reps))
-        combined_df = pd.concat(results_dfs, ignore_index=True)
-    combined_df.to_csv('outputs/results_2026_01_07_correlogram.csv')
+    # combined_df.to_csv('outputs/results_2026_01_07_correlogram_solver_7_20.csv')
+    # print(combined_df)
+
  
 
