@@ -4,6 +4,8 @@ import numpy as np
 import math
 import time
 from multiprocessing import Pool
+import matplotlib.pyplot as plt
+
 
 from pto import run, rnd
 
@@ -29,10 +31,10 @@ from pto.problems.symbolic_regression import cnf_generator as sr_target_cnf, ful
 # try random sampling versus random walk as correlogram walks
 
 # ('HelloWorld', (8, 16, 32), (500, 2000, 6000), (lambda s: HelloWorld(target='A'*s))),
+        # ('Sphere', (10, 20, 40), (10000, 50000, 200000), (lambda s: Sphere(s))),
 problems_sizess_budgetss_ctors = [
         # each row is (problem_name, sizes, budgets, constructor fn given only size)
         ('OneMax', (10, 50, 100), (10000, 50000, 200000), (lambda s: OneMax(s))),
-        ('Sphere', (10, 20, 40), (10000, 50000, 200000), (lambda s: Sphere(s))),
 
         # several different problems in boolean function synthesis. two sets of synthetic problems, and even-parity
         ('BFS-CNF', (6, 12, 18), (10000, 50000, 200000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_target_cnf))), 
@@ -76,7 +78,7 @@ def run_one_correlogram_rep(rep):
     for problem_name, sizes, budgets, ctor in problems_sizess_budgetss_ctors:
         for size, budget, size_cat in zip(sizes, budgets, size_cats):
 
-            print(problem_name, size, budget)
+            print("CORRELATION", "rep", rep, problem_name, size)
             problem = ctor(size)
 
             if "BFS" in problem_name:
@@ -105,7 +107,11 @@ def run_one_correlogram_rep(rep):
                             # RUN correlogram
                             seed(rep) # random.seed(rep)
                             start_time = time.time()
-                            x_axis, y_axis, p_axis, n_axis, cor_length, diameter, onestep_cor, sr_structural_change_cor, sr_average_parent_length = run(generator,
+                            (x_axis, y_axis, p_axis, n_axis, 
+                             cor_length, diameter, onestep_cor, 
+                             sr_structural_change_cor, sr_average_parent_length,
+                              g_avg_dist, g_total_var, g_norm_corr_length, g_nugget,
+                              variogram) = run(generator,
                                                 problem.fitness,
                                                 gen_args=problem.gen_args,
                                                 fit_args=problem.fit_args,
@@ -122,11 +128,15 @@ def run_one_correlogram_rep(rep):
                             csv_filename = f'outputs/results_2026_01_07_correlogram_xy_{problem_name}_{size}_{size_cat}_{budget}_{dist_type}_{name_type}_{generator_name}_rep{rep}.csv'
                             xy_df = pd.DataFrame({'x_axis': x_axis, 'y_axis': y_axis, 'p_axis': p_axis, 'n_axis': n_axis})
                             xy_df.to_csv(csv_filename, index=False)
+                            # save variogram image
+                            pdf_filename = csv_filename[:-4] + ".pdf"
+                            print("making variogram pdf " + pdf_filename)
+                            plot_variogram(variogram, g_avg_dist, g_total_var, filename=pdf_filename)
 
-                            print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {cor_length} {onestep_cor} {diameter} {sr_structural_change_cor} {sr_average_parent_length}')
-                            results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, cor_length, onestep_cor, diameter, sr_structural_change_cor, sr_average_parent_length))
+                            print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {cor_length} {onestep_cor} {diameter} {sr_structural_change_cor} {sr_average_parent_length} {g_avg_dist} {g_total_var} {g_norm_corr_length} {g_nugget}')
+                            results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, cor_length, onestep_cor, diameter, sr_structural_change_cor, sr_average_parent_length, g_avg_dist, g_total_var, g_norm_corr_length, g_nugget))
 
-    columns = "problem size size_cat solver budget dist_type name_type generator rep elapsed cor_length onestep_cor diameter sr_structural_change_cor sr_average_parent_length".split(" ")
+    columns = "problem size size_cat solver budget dist_type name_type generator rep elapsed cor_length onestep_cor diameter sr_structural_change_cor sr_average_parent_length g_avg_dist g_total_var g_norm_corr_length g_nugget".split(" ")
     df = pd.DataFrame.from_records(columns=columns, data=results)
     return df                
 
@@ -153,11 +163,9 @@ def run_one_solver_rep(rep):
 
                     # check for early termination
                     if fitness_individual == problem.opt_fitness:
-                        print("print OPT")
                         return True
                     if len(history) > n_iters_no_improve:
                         if len(set(fit for fit in history[-n_iters_no_improve:])) == 1:
-                            print("print NO IMPROVEMENT")
                             return True
                     return False
                 return terminate_opt_no_improve
@@ -184,11 +192,11 @@ def run_one_solver_rep(rep):
 
                                 # history counted in generations
                                 callback = make_callback(problem.better, pop_based=True, 
-                                                         n_iters_no_improve=int(np.sqrt(budget) / 2.0))
+                                                         n_iters_no_improve=10000000) # no early stopping
                             else:
                                 # history counted in individuals
                                 callback = make_callback(problem.better, pop_based=False, 
-                                                         n_iters_no_improve=int(budget / 2.0))
+                                                         n_iters_no_improve=10000000) # no early stopping
 
                             # unnecessary combination
                             if solver == 'random_search':
@@ -245,6 +253,40 @@ def run_one_solver_rep(rep):
     return df
 
 
+def plot_variogram(V, avg_dist, total_variance, filename):
+    x_dots_norm = V.bins / avg_dist
+    y_dots_corr = 1 - (V.experimental / total_variance)
+
+    # Generate smooth curve for X[0, 2]
+    x_smooth_raw = np.linspace(1e-9, avg_dist * 2, 100)
+    x_smooth_norm = x_smooth_raw / avg_dist
+    y_smooth_corr = 1 - (V.fitted_model(x_smooth_raw) / total_variance)
+
+    # 5. VISUALIZATION
+    plt.figure(figsize=(6, 4))
+
+    # Plot the bunched points from all walks
+    plt.scatter(x_dots_norm, y_dots_corr, color='firebrick', s=25, alpha=0.6,
+                edgecolors='black', linewidth=0.5, label='Ensemble RW Bins')
+
+    # Plot the interpolating trend line
+    plt.plot(x_smooth_norm, y_smooth_corr, color='royalblue', linewidth=3,
+            label='Landscape Trend (Fitted)')
+
+    # Formatting
+    plt.xlim(0, 2)
+    plt.ylim(-1, 1)
+    plt.axhline(0, color='black', lw=1.2)
+    plt.axvline(1, color='forestgreen', linestyle='--', alpha=0.7, label='Avg Distance Threshold')
+
+    #plt.title(f"Ensemble Correlogram ({n_walks} Walks, {walk_len} Steps Each)", fontsize=14)
+    plt.xlabel("Normalized Distance (d / avg_dist)", fontsize=10)
+    plt.ylabel("Autocorrelation", fontsize=10)
+    plt.legend(frameon=True)
+    plt.grid(True, linestyle=':', alpha=0.6)
+
+    plt.savefig(filename)
+
 def downsample_history(history, max_samples=1000):
     """
     Downsample history to at most max_samples, always keeping first and last values.
@@ -277,19 +319,19 @@ def downsample_history(history, max_samples=1000):
     
 
 if __name__ == '__main__':
-    # Test autocorrelation analysis
+    # # Test autocorrelation analysis
     df = run_one_correlogram_rep(0)
     df.to_csv('outputs/results_2026_01_07_correlogram.csv')
     import sys; sys.exit()
 
     # df = run_one_solver_rep(0)
 
-    # n_reps = 7
+    # n_reps = 20
     # import os
     # with Pool(processes=os.cpu_count() - 1) as pool:
-    #     results_dfs = pool.map(run_one_solver_rep, range(n_reps, n_reps*3))
+    #     results_dfs = pool.map(run_one_solver_rep, range(n_reps))
     #     combined_df = pd.concat(results_dfs, ignore_index=True)
-    # combined_df.to_csv('outputs/results_2026_01_07_correlogram_solver_7_20.csv')
+    # combined_df.to_csv('outputs/results_2026_01_07_correlogram_solver.csv')
     # print(combined_df)
 
  

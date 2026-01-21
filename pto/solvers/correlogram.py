@@ -1,6 +1,7 @@
 import math
 import random
 import numpy as np
+from skgstat import Variogram, MetricSpace
 try:
     from scipy import stats
     HAS_SCIPY = True
@@ -251,6 +252,17 @@ class correlogram:
         else:
             cor_len = np.nan
 
+        # TODO
+        if use_binning:
+            n_lags = 20
+        else:
+            n_lags = 20
+
+        (g_avg_dist, g_total_var, 
+         g_norm_corr_length, g_nugget, variogram) = self.make_variogram(
+             population, fitness, n_lags, self.op.distance_ind, 
+             model='spherical')
+        
         if self.run_structural_mutation_filter:
             n = 10000
             min_len = 0
@@ -258,8 +270,11 @@ class correlogram:
         else:
             sr_structural_change_cor, sr_average_parent_length = 0, 0
 
-        return x_axis, y_axis, p_axis, n_axis, cor_len, diameter, onestep_cor, sr_structural_change_cor, sr_average_parent_length
-
+        return (x_axis, y_axis, p_axis, n_axis, # after binning: x; y cor; p cor p-value; n num per bin
+                cor_len, diameter, onestep_cor, # cor_len calculated using crossing; diameter; one-step cor by one-mutation
+                sr_structural_change_cor, sr_average_parent_length, # stats from filtered mutation method, ie filter for structural change
+                g_avg_dist, g_total_var, g_norm_corr_length, g_nugget, # stats from geostats Variogram method
+                variogram) 
 
     ###################
     # EXTRA FUNCTIONS #
@@ -397,3 +412,45 @@ class correlogram:
         average_parent_length = np.mean(parent_geno_lengths)
 
         return correlation, average_parent_length
+    
+    
+
+
+
+    # model='exponential', 'spherical'
+    def make_variogram(self, x, y, n_lags, dist, model='spherical'):
+        # copied from https://colab.research.google.com/drive/13rUkHW3DxhkRR6ZjujGjfvmp3N0U1hix
+
+        n = len(x)
+        dist_matrix = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                dist_matrix[i, j] = dist(x[i], x[j])
+        dummy = np.random.random((n, 2)) # we will over-write                
+        ms = MetricSpace(dummy) 
+        ms._dists = dist_matrix
+
+        # 3. ANALYSIS
+        # Increasing n_lags helps capture the fine-grained scatter
+        V = Variogram(
+            coordinates=ms,
+            values=y,
+            n_lags=n_lags,
+            model=model,
+            filename=None
+        )
+
+        # 4. NORMALIZATION
+        avg_dist = np.mean(V.distance)
+        total_variance = np.var(y)
+
+        # 6. OUTPUT STATS
+        norm_corr_length = V.parameters[0] / avg_dist
+        # print(f"Normalized Correlation Length (Range): {norm_corr_length:.4f}")
+        # print(f"Nugget (Local Discontinuity): {V.parameters[2]:.4f}")  
+        return avg_dist, total_variance, norm_corr_length, V.parameters[2], V
+
+
+ 
+        
+
