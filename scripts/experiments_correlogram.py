@@ -111,7 +111,7 @@ def run_one_correlogram_rep(rep):
                              cor_length, diameter, onestep_cor, 
                              sr_structural_change_cor, sr_average_parent_length,
                               g_avg_dist, g_total_var, g_norm_corr_length, g_nugget,
-                              variogram) = run(generator,
+                              variogram, dist_matrix, fitvals) = run(generator,
                                                 problem.fitness,
                                                 gen_args=problem.gen_args,
                                                 fit_args=problem.fit_args,
@@ -128,10 +128,11 @@ def run_one_correlogram_rep(rep):
                             csv_filename = f'outputs/results_2026_01_07_correlogram_xy_{problem_name}_{size}_{size_cat}_{budget}_{dist_type}_{name_type}_{generator_name}_rep{rep}.csv'
                             xy_df = pd.DataFrame({'x_axis': x_axis, 'y_axis': y_axis, 'p_axis': p_axis, 'n_axis': n_axis})
                             xy_df.to_csv(csv_filename, index=False)
-                            # save variogram image
-                            pdf_filename = csv_filename[:-4] + ".pdf"
-                            print("making variogram pdf " + pdf_filename)
-                            plot_variogram(variogram, g_avg_dist, g_total_var, filename=pdf_filename)
+                            # save distances for later use in variogram
+                            dist_filename = csv_filename[:-4] + ".npy"
+                            np.save(dist_filename, dist_matrix)
+                            fit_filename = csv_filename[:-4] + "_fitness.npy"
+                            np.save(fit_filename, fitvals)
 
                             print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {cor_length} {onestep_cor} {diameter} {sr_structural_change_cor} {sr_average_parent_length} {g_avg_dist} {g_total_var} {g_norm_corr_length} {g_nugget}')
                             results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, cor_length, onestep_cor, diameter, sr_structural_change_cor, sr_average_parent_length, g_avg_dist, g_total_var, g_norm_corr_length, g_nugget))
@@ -253,39 +254,6 @@ def run_one_solver_rep(rep):
     return df
 
 
-def plot_variogram(V, avg_dist, total_variance, filename):
-    x_dots_norm = V.bins / avg_dist
-    y_dots_corr = 1 - (V.experimental / total_variance)
-
-    # Generate smooth curve for X[0, 2]
-    x_smooth_raw = np.linspace(1e-9, avg_dist * 2, 100)
-    x_smooth_norm = x_smooth_raw / avg_dist
-    y_smooth_corr = 1 - (V.fitted_model(x_smooth_raw) / total_variance)
-
-    # 5. VISUALIZATION
-    plt.figure(figsize=(6, 4))
-
-    # Plot the bunched points from all walks
-    plt.scatter(x_dots_norm, y_dots_corr, color='firebrick', s=25, alpha=0.6,
-                edgecolors='black', linewidth=0.5, label='Ensemble RW Bins')
-
-    # Plot the interpolating trend line
-    plt.plot(x_smooth_norm, y_smooth_corr, color='royalblue', linewidth=3,
-            label='Landscape Trend (Fitted)')
-
-    # Formatting
-    plt.xlim(0, 2)
-    plt.ylim(-1, 1)
-    plt.axhline(0, color='black', lw=1.2)
-    plt.axvline(1, color='forestgreen', linestyle='--', alpha=0.7, label='Avg Distance Threshold')
-
-    #plt.title(f"Ensemble Correlogram ({n_walks} Walks, {walk_len} Steps Each)", fontsize=14)
-    plt.xlabel("Normalized Distance (d / avg_dist)", fontsize=10)
-    plt.ylabel("Autocorrelation", fontsize=10)
-    plt.legend(frameon=True)
-    plt.grid(True, linestyle=':', alpha=0.6)
-
-    plt.savefig(filename)
 
 def downsample_history(history, max_samples=1000):
     """

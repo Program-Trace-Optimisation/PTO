@@ -259,7 +259,7 @@ class correlogram:
             n_lags = 20
 
         (g_avg_dist, g_total_var, 
-         g_norm_corr_length, g_nugget, variogram) = self.make_variogram(
+         g_norm_corr_length, g_nugget, variogram, dist_matrix) = self.make_variogram(
              population, fitness, n_lags, self.op.distance_ind, 
              model='spherical')
         
@@ -274,7 +274,7 @@ class correlogram:
                 cor_len, diameter, onestep_cor, # cor_len calculated using crossing; diameter; one-step cor by one-mutation
                 sr_structural_change_cor, sr_average_parent_length, # stats from filtered mutation method, ie filter for structural change
                 g_avg_dist, g_total_var, g_norm_corr_length, g_nugget, # stats from geostats Variogram method
-                variogram) 
+                variogram, dist_matrix, fitness) # variogram itself, precomputed distance matrix, fitness of sampled inds
 
     ###################
     # EXTRA FUNCTIONS #
@@ -448,7 +448,7 @@ class correlogram:
         norm_corr_length = V.parameters[0] / avg_dist
         # print(f"Normalized Correlation Length (Range): {norm_corr_length:.4f}")
         # print(f"Nugget (Local Discontinuity): {V.parameters[2]:.4f}")  
-        return avg_dist, total_variance, norm_corr_length, V.parameters[2], V
+        return avg_dist, total_variance, norm_corr_length, V.parameters[2], V, dist_matrix
 
 
  
