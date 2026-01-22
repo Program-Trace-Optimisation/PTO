@@ -85,7 +85,7 @@ def run_one_correlogram_rep(rep):
                 assert size % 3 == 0 # symbolic_regression.py (BFS) generators assume this
 
             for solver in ["correlogram"]: # a dummy "solver"
-                solver_args = {'avg_dist_tolerance': 0.1, 'n_walks': 20, 'verbose': True} # any other args needed for correlogram?
+                solver_args = {'avg_dist_tolerance': 0.1, 'n_samples': 1000, 'n_walks': 20, 'verbose': True} # any other args needed for correlogram?
                 if "BFS" in problem_name:
                     solver_args['run_structural_mutation_filter'] = True 
                 for dist_type in ['coarse']: # ['coarse', 'fine']:
