@@ -18,8 +18,9 @@ class correlogram:
     def __init__(
         self,
         op,
+        n_walks,
+        walk_len,
         avg_dist_tolerance=0.1,  # In preliminary sampling: continue sampling pairs til avg_distance converges to within this
-        n_samples=20, 
         mutate="mutate_ind",
         distance="distance_ind",  # The name of the distance function in 'op'
         verbose=False,
@@ -31,7 +32,8 @@ class correlogram:
     ):
         self.op = op
         self.avg_dist_tolerance = avg_dist_tolerance
-        self.n_samples = n_samples
+        self.n_walks = n_walks
+        self.walk_len = walk_len
         self.mutate_func_name = mutate
         self.distance_func_name = distance
         self.verbose = verbose
@@ -58,15 +60,12 @@ class correlogram:
             print(f"Calculating avg_dist...")
         avg_dist = self.avg_dist() # avg distance between pair
         diameter = avg_dist * 2
-        walk_len = 20 # TODO should we incorporate diameter here?
-        self.n_walks = self.n_samples // walk_len
-        
 
         # 2. Run some random walks to collect individuals
         # and evaluate them
         if self.verbose:
             print("Running random walks and evaluating population")
-        population, walks = self.run_random_walks(walk_len)
+        population, walks = self.run_random_walks(self.walk_len)
         fitness = self.evaluate_pop(population)
 
         # Calculate one-step correlation from consecutive steps in walks
@@ -78,9 +77,13 @@ class correlogram:
                 f_i = walk_fitness[:-1]  # all but last
                 f_i_plus_1 = walk_fitness[1:]  # all but first
                 if len(f_i) >= 2:  # need at least 2 pairs
-                    r = np.corrcoef(f_i, f_i_plus_1)[0, 1]
-                    if not np.isnan(r):
-                        onestep_correlations.append(r)
+                    try:
+                        r = np.corrcoef(f_i, f_i_plus_1)[0, 1]
+                        if not np.isnan(r):
+                            onestep_correlations.append(r)
+                    except: # could be divide-by-zero in unusual cases, just skip
+                        pass
+
 
         # Average one-step correlation across all walks
         if len(onestep_correlations) > 0:
@@ -209,7 +212,7 @@ class correlogram:
             if self.verbose:
                 print(f"Using exact integer distances...")
 
-            for d in range(1, walk_len + 1):
+            for d in range(1, self.walk_len + 1):
                 # correlation of the fi, fj values of a given distance
                 if self.verbose:
                     print(f"computing for {d}")
@@ -228,7 +231,7 @@ class correlogram:
                 x_axis.append(d)
 
             # correlation of the fi, fj values greater than the max distance
-            d = walk_len + 1
+            d = self.walk_len + 1
             pairs = records[distances >= d][:, :2]
             n_pairs = len(pairs)
             if n_pairs >= self.min_pairs_per_bin:
