@@ -18,6 +18,7 @@ class genetic_algorithm:
         n_generation=100,
         population_size=50,
         truncation_rate=0.5,
+        mutation_rate=0.05, # all inds are created by xover, some are then mutated also
         mutation="mutate_position_wise_ind",
         crossover="crossover_one_point_ind",
         verbose=False,
@@ -30,6 +31,7 @@ class genetic_algorithm:
         self.n_generation = n_generation
         self.population_size = population_size
         self.truncation_rate = truncation_rate
+        self.mutation_rate = mutation_rate
         self.mutation = mutation
         self.crossover = crossover
         self.verbose = verbose
@@ -112,7 +114,10 @@ class genetic_algorithm:
         ]
 
     def mutate_pop(self, population):
-        return [self.op.mutate_ind(sol) for sol in population]
+        return [(self.op.mutate_ind(sol) 
+                if random.random() < self.mutation_rate 
+                else sol)
+                for sol in population]
 
     def best_pop(self, population, fitness_population):
         best_idx = self.better(

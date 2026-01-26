@@ -248,7 +248,7 @@ class Assignment(Problem):
         self.estimate_average_fitness()
 
 class SymbolicRegression(Problem):
-    def __init__(self, n_samples, n_vars, target_gen=None):
+    def __init__(self, n_samples, n_vars, target_gen=None, cnf_clause_len=None):
         super().__init__()
         if target_gen is None: target_gen = symbolic_regression.cnf_generator
         self.fitness = symbolic_regression.fitness
@@ -258,8 +258,25 @@ class SymbolicRegression(Problem):
         max_depth = 1 + math.ceil(math.log2(len(term_set)))
         self.gen_args = (func_set, term_set, max_depth)
         self.fit_args = symbolic_regression.make_training_data(
-            n_samples, n_vars, func_set, term_set, target_gen
-        )  # return (X_train, y_train)
+            n_samples, n_vars, func_set, term_set, target_gen, cnf_clause_len=cnf_clause_len
+        )
+        self.better = symbolic_regression.better
+        self.opt_fitness = 0.0
+        self.estimate_average_fitness()
+
+class BFSCNF(Problem):
+    def __init__(self, n_vars, target_gen=None, clause_len=None):
+        super().__init__()
+        if target_gen is None: target_gen = symbolic_regression.cnf_generator
+        self.fitness = symbolic_regression.balanced_fitness
+        self.generator = symbolic_regression.generator
+        func_set = [("and", 2), ("or", 2), ("not", 1)]
+        term_set = [f"x[{i}]" for i in range(n_vars)]
+        max_depth = 1 + math.ceil(math.log2(len(term_set)))
+        self.gen_args = (func_set, term_set, max_depth)
+        self.fit_args = symbolic_regression.make_critical_training_data_cnf(
+            n_vars, clause_len=clause_len
+        )
         self.better = symbolic_regression.better
         self.opt_fitness = 0.0
         self.estimate_average_fitness()
