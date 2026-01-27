@@ -6,6 +6,12 @@ __pycache__/
 scripts/results*.csv
 scripts/results*.txt
 scripts/runs_*/*
+scripts/outputs/history_*
+scripts/outputs/Landscape/Histories/*
+scripts/outputs/Landscape/Landscape_MetricSpace_npy
+scripts/outputs/Landscape/Landscape_xypn_axes
+scripts/outputs/PSO/tex_outputs
+
 
 # C extensions
 *.so
