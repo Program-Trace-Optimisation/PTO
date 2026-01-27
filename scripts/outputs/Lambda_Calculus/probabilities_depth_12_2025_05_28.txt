@@ -1,0 +1,180 @@
+NOT
+with macros
+('abs', 'x1', ('app', ('app', ('var', 'x1'), 'FALSE'), 'TRUE'))
+1.3563368055555555e-05
+with macros and new normalisation
+('abs', 'x1', ('app', ('app', ('var', 'x1'), 'FALSE'), 'TRUE'))
+1.3563368055555555e-05
+without macros and not expanded
+('abs', 'x1', ('app', ('app', ('var', 'x1'), 'FALSE'), 'TRUE'))
+0.0
+without macros and expanded
+('abs', 'x1', ('app', ('app', ('var', 'x1'), ('abs', 'x1', ('abs', 'x2', ('var', 'x2')))), ('abs', 'x1', ('abs', 'x2', ('var', 'x1')))))
+0.0
+without macros and expanded and alpha_converted
+('abs', 'x1', ('app', ('app', ('var', 'x1'), ('abs', 'x2', ('abs', 'x3', ('var', 'x3')))), ('abs', 'x4', ('abs', 'x5', ('var', 'x4')))))
+3.7633528463178407e-06
+without macros and with new normalisation
+('abs', 'x1', ('app', ('app', ('var', 'x1'), ('abs', 'x2', ('abs', 'x3', ('var', 'x3')))), ('abs', 'x4', ('abs', 'x5', ('var', 'x4')))))
+3.7633528463178407e-06
+------------------------------------------------------------
+AND
+with macros
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('var', 'x2')), 'FALSE')))
+5.086263020833333e-06
+with macros and new normalisation
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('var', 'x2')), 'FALSE')))
+5.086263020833333e-06
+without macros and not expanded
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('var', 'x2')), 'FALSE')))
+0.0
+without macros and expanded
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('var', 'x2')), ('abs', 'x1', ('abs', 'x2', ('var', 'x2'))))))
+0.0
+without macros and expanded and alpha_converted
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('var', 'x2')), ('abs', 'x3', ('abs', 'x4', ('var', 'x4'))))))
+6.350657928161356e-06
+without macros and with new normalisation
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('var', 'x2')), ('abs', 'x3', ('abs', 'x4', ('var', 'x4'))))))
+6.350657928161356e-06
+------------------------------------------------------------
+OR
+with macros
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), 'TRUE'), ('var', 'x2'))))
+5.086263020833333e-06
+with macros and new normalisation
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), 'TRUE'), ('var', 'x2'))))
+5.086263020833333e-06
+without macros and not expanded
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), 'TRUE'), ('var', 'x2'))))
+0.0
+without macros and expanded
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('abs', 'x1', ('abs', 'x2', ('var', 'x1')))), ('var', 'x2'))))
+0.0
+without macros and expanded and alpha_converted
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('abs', 'x3', ('abs', 'x4', ('var', 'x3')))), ('var', 'x2'))))
+6.350657928161355e-06
+without macros and with new normalisation
+('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('abs', 'x3', ('abs', 'x4', ('var', 'x3')))), ('var', 'x2'))))
+6.350657928161355e-06
+------------------------------------------------------------
+SUCC
+with macros
+('abs', 'n', ('abs', 'f', ('abs', 'x', ('app', ('var', 'f'), ('app', ('app', ('var', 'n'), ('var', 'f')), ('var', 'x'))))))
+0.0
+with macros and new normalisation
+('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('app', ('var', 'x2'), ('app', ('app', ('var', 'x1'), ('var', 'x2')), ('var', 'x3'))))))
+2.3547513985339505e-08
+without macros and not expanded
+('abs', 'n', ('abs', 'f', ('abs', 'x', ('app', ('var', 'f'), ('app', ('app', ('var', 'n'), ('var', 'f')), ('var', 'x'))))))
+0.0
+without macros and expanded
+('abs', 'n', ('abs', 'f', ('abs', 'x', ('app', ('var', 'f'), ('app', ('app', ('var', 'n'), ('var', 'f')), ('var', 'x'))))))
+0.0
+without macros and expanded and alpha_converted
+('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('app', ('var', 'x2'), ('app', ('app', ('var', 'x1'), ('var', 'x2')), ('var', 'x3'))))))
+4.181503162575378e-07
+without macros and with new normalisation
+('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('app', ('var', 'x2'), ('app', ('app', ('var', 'x1'), ('var', 'x2')), ('var', 'x3'))))))
+4.181503162575378e-07
+------------------------------------------------------------
+PLUS
+with macros
+('abs', 'm', ('abs', 'n', ('abs', 'f', ('abs', 'x', ('app', ('app', ('var', 'm'), ('var', 'f')), ('app', ('app', ('var', 'n'), ('var', 'f')), ('var', 'x')))))))
+0.0
+with macros and new normalisation
+('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('abs', 'x4', ('app', ('app', ('var', 'x1'), ('var', 'x3')), ('app', ('app', ('var', 'x2'), ('var', 'x3')), ('var', 'x4')))))))
+2.9103830456733704e-11
+without macros and not expanded
+('abs', 'm', ('abs', 'n', ('abs', 'f', ('abs', 'x', ('app', ('app', ('var', 'm'), ('var', 'f')), ('app', ('app', ('var', 'n'), ('var', 'f')), ('var', 'x')))))))
+0.0
+without macros and expanded
+('abs', 'm', ('abs', 'n', ('abs', 'f', ('abs', 'x', ('app', ('app', ('var', 'm'), ('var', 'f')), ('app', ('app', ('var', 'n'), ('var', 'f')), ('var', 'x')))))))
+0.0
+without macros and expanded and alpha_converted
+('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('abs', 'x4', ('app', ('app', ('var', 'x1'), ('var', 'x3')), ('app', ('app', ('var', 'x2'), ('var', 'x3')), ('var', 'x4')))))))
+1.2250497546607553e-09
+without macros and with new normalisation
+('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('abs', 'x4', ('app', ('app', ('var', 'x1'), ('var', 'x3')), ('app', ('app', ('var', 'x2'), ('var', 'x3')), ('var', 'x4')))))))
+1.2250497546607553e-09
+------------------------------------------------------------
+IS_ZERO
+with macros
+('abs', 'n', ('app', ('app', ('var', 'n'), ('abs', 'x', 'FALSE')), 'TRUE'))
+0.0
+with macros and new normalisation
+('abs', 'x1', ('app', ('app', ('var', 'x1'), ('abs', 'x2', 'FALSE')), 'TRUE'))
+3.3908420138888887e-06
+without macros and not expanded
+('abs', 'n', ('app', ('app', ('var', 'n'), ('abs', 'x', 'FALSE')), 'TRUE'))
+0.0
+without macros and expanded
+('abs', 'n', ('app', ('app', ('var', 'n'), ('abs', 'x', ('abs', 'x1', ('abs', 'x2', ('var', 'x2'))))), ('abs', 'x1', ('abs', 'x2', ('var', 'x1')))))
+0.0
+without macros and expanded and alpha_converted
+('abs', 'x1', ('app', ('app', ('var', 'x1'), ('abs', 'x2', ('abs', 'x3', ('abs', 'x4', ('var', 'x4'))))), ('abs', 'x5', ('abs', 'x6', ('var', 'x5')))))
+9.408382115794602e-07
+without macros and with new normalisation
+('abs', 'x1', ('app', ('app', ('var', 'x1'), ('abs', 'x2', ('abs', 'x3', ('abs', 'x4', ('var', 'x4'))))), ('abs', 'x5', ('abs', 'x6', ('var', 'x5')))))
+9.408382115794602e-07
+------------------------------------------------------------
+ALL
+with macros
+('abs', 'l', ('app', ('app', ('app', 'FOLD', 'AND'), 'TRUE'), ('var', 'l')))
+0.0
+with macros and new normalisation
+('abs', 'x1', ('app', ('app', ('app', 'FOLD', 'AND'), 'TRUE'), ('var', 'x1')))
+1.4128508391203703e-07
+without macros and not expanded
+('abs', 'l', ('app', ('app', ('app', 'FOLD', 'AND'), 'TRUE'), ('var', 'l')))
+0.0
+without macros and expanded
+('abs', 'l', ('app', ('app', ('app', ('abs', 'f', ('abs', 'z', ('abs', 'l', ('app', ('app', ('var', 'l'), ('var', 'f')), ('var', 'z'))))), ('abs', 'x1', ('abs', 'x2', ('app', ('app', ('var', 'x1'), ('var', 'x2')), ('abs', 'x1', ('abs', 'x2', ('var', 'x2'))))))), ('abs', 'x1', ('abs', 'x2', ('var', 'x1')))), ('var', 'l')))
+0.0
+without macros and expanded and alpha_converted
+('abs', 'x1', ('app', ('app', ('app', ('abs', 'x2', ('abs', 'x3', ('abs', 'x4', ('app', ('app', ('var', 'x4'), ('var', 'x2')), ('var', 'x3'))))), ('abs', 'x5', ('abs', 'x6', ('app', ('app', ('var', 'x5'), ('var', 'x6')), ('abs', 'x7', ('abs', 'x8', ('var', 'x8'))))))), ('abs', 'x9', ('abs', 'x10', ('var', 'x9')))), ('var', 'x1')))
+2.7320263591606063e-16
+without macros and with new normalisation
+('abs', 'x1', ('app', ('app', ('app', ('abs', 'x2', ('abs', 'x3', ('abs', 'x4', ('app', ('app', ('var', 'x4'), ('var', 'x2')), ('var', 'x3'))))), ('abs', 'x5', ('abs', 'x6', ('app', ('app', ('var', 'x5'), ('var', 'x6')), ('abs', 'x7', ('abs', 'x8', ('var', 'x8'))))))), ('abs', 'x9', ('abs', 'x10', ('var', 'x9')))), ('var', 'x1')))
+2.7320263591606063e-16
+------------------------------------------------------------
+FOLD
+with macros
+('abs', 'f', ('abs', 'z', ('abs', 'l', ('app', ('app', ('var', 'l'), ('var', 'f')), ('var', 'z')))))
+0.0
+with macros and new normalisation
+('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('app', ('app', ('var', 'x3'), ('var', 'x1')), ('var', 'x2')))))
+1.1302806712962962e-06
+without macros and not expanded
+('abs', 'f', ('abs', 'z', ('abs', 'l', ('app', ('app', ('var', 'l'), ('var', 'f')), ('var', 'z')))))
+0.0
+without macros and expanded
+('abs', 'f', ('abs', 'z', ('abs', 'l', ('app', ('app', ('var', 'l'), ('var', 'f')), ('var', 'z')))))
+0.0
+without macros and expanded and alpha_converted
+('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('app', ('app', ('var', 'x3'), ('var', 'x1')), ('var', 'x2')))))
+1.129005853895352e-05
+without macros and with new normalisation
+('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('app', ('app', ('var', 'x3'), ('var', 'x1')), ('var', 'x2')))))
+1.129005853895352e-05
+------------------------------------------------------------
+LENGTH
+with macros
+('app', ('app', 'FOLD', ('abs', '_', ('abs', 'acc', ('app', 'SUCC', ('var', 'acc'))))), 'ZERO')
+0.0
+with macros and new normalisation
+('app', ('app', 'FOLD', ('abs', 'x1', ('abs', 'x2', ('app', 'SUCC', ('var', 'x2'))))), 'ZERO')
+0.0
+without macros and not expanded
+('app', ('app', 'FOLD', ('abs', '_', ('abs', 'acc', ('app', 'SUCC', ('var', 'acc'))))), 'ZERO')
+0.0
+without macros and expanded
+('app', ('app', ('abs', 'f', ('abs', 'z', ('abs', 'l', ('app', ('app', ('var', 'l'), ('var', 'f')), ('var', 'z'))))), ('abs', '_', ('abs', 'acc', ('app', ('abs', 'n', ('abs', 'f', ('abs', 'x', ('app', ('var', 'f'), ('app', ('app', ('var', 'n'), ('var', 'f')), ('var', 'x')))))), ('var', 'acc'))))), ('abs', 'g', ('abs', 'y', ('var', 'y'))))
+0.0
+without macros and expanded and alpha_converted
+('app', ('app', ('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('app', ('app', ('var', 'x3'), ('var', 'x1')), ('var', 'x2'))))), ('abs', 'x4', ('abs', 'x5', ('app', ('abs', 'x6', ('abs', 'x7', ('abs', 'x8', ('app', ('var', 'x7'), ('app', ('app', ('var', 'x6'), ('var', 'x7')), ('var', 'x8')))))), ('var', 'x5'))))), ('abs', 'x9', ('abs', 'x10', ('var', 'x10'))))
+1.5542194398780334e-17
+without macros and with new normalisation
+('app', ('app', ('abs', 'x1', ('abs', 'x2', ('abs', 'x3', ('app', ('app', ('var', 'x3'), ('var', 'x1')), ('var', 'x2'))))), ('abs', 'x4', ('abs', 'x5', ('app', ('abs', 'x6', ('abs', 'x7', ('abs', 'x8', ('app', ('var', 'x7'), ('app', ('app', ('var', 'x6'), ('var', 'x7')), ('var', 'x8')))))), ('var', 'x5'))))), ('abs', 'x9', ('abs', 'x10', ('var', 'x10'))))
+1.5542194398780334e-17
+------------------------------------------------------------
