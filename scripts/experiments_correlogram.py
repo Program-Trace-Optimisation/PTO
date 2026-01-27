@@ -13,12 +13,13 @@ from pto.problems.as_classes import (
     OneMax, Sphere, HelloWorld,
     TSP, kTSP, Assignment,
     SymbolicRegression, GrammaticalEvolution, NeuralNetwork,
+    BFSCNF
 )
 
 from pto.problems.onemax import generator as onemax_gen
 from pto.problems.sphere import generator as sphere_gen
 from pto.problems.symbolic_regression import generator as sr_gen, generator_depth as sr_depth_gen
-from pto.problems.symbolic_regression import cnf_generator as sr_target_cnf, full as sr_target_full, even_parity as sr_evenparity_gen
+from pto.problems.symbolic_regression import cnf_generator as sr_target_cnf, full as sr_target_full, even_parity as sr_evenparity_gen, make_critical_training_data_cnf as sr_target_cnf_critical
 
 # RS, HC, GA
 # 1 generator per problem
@@ -36,10 +37,17 @@ problems_sizess_budgetss_ctors = [
         # each row is (problem_name, sizes, budgets, constructor fn given only size)
         ('OneMax', (10, 50, 100), (10000, 50000, 200000), (lambda s: OneMax(s))),
 
-        # several different problems in boolean function synthesis. two sets of synthetic problems, and even-parity
-        ('BFS-CNF', (6, 12, 18), (10000, 50000, 200000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_target_cnf))), 
-        ('BFS-Full', (6, 12, 18), (10000, 50000, 200000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_target_full))), 
-        ('BFS-EvenParity', (6, 12, 18), (10000, 50000, 200000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_evenparity_gen))),
+        # several different problems in boolean function synthesis. 
+        # CNF with only the critical fitness cases
+        ('BFS-CNF1', (6, 12, 18),  (20000, 100000, 1000000), (lambda s: BFSCNF(s, target_gen=sr_target_cnf_critical, clause_len=1))), 
+        ('BFS-CNF2', (6, 12, 18),  (20000, 100000, 1000000), (lambda s: BFSCNF(s, target_gen=sr_target_cnf_critical, clause_len=2))), 
+        ('BFS-CNF3', (6, 12, 18),  (20000, 100000, 1000000), (lambda s: BFSCNF(s, target_gen=sr_target_cnf_critical, clause_len=3))), 
+        ('BFS-CNF4', (8, 16, 20),  (20000, 100000, 1000000), (lambda s: BFSCNF(s, target_gen=sr_target_cnf_critical, clause_len=4))), 
+        ('BFS-CNF5', (10, 15, 20), (20000, 100000, 1000000), (lambda s: BFSCNF(s, target_gen=sr_target_cnf_critical, clause_len=5))), 
+
+        # Generated Full tree targets, and EvenParity
+        #('BFS-Full', (6, 12, 18), (10000, 50000, 200000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_target_full))), 
+        #('BFS-EvenParity', (6, 12, 18), (10000, 50000, 1000000), (lambda s: SymbolicRegression(s*20, s, target_gen=sr_evenparity_gen))),
 ]
 
 def solvers_argss(solver, budget):
@@ -49,13 +57,16 @@ def solvers_argss(solver, budget):
         "hill_climber": 
         {'n_generation': budget},
         "genetic_algorithm": 
-        {'n_generation': int(math.sqrt(budget)), 
-         'population_size': int(budget / int(math.sqrt(budget)))},
+        {'n_generation': int(budget / 100), 
+         'population_size': 100,
+         'mutation_rate': 0.1,
+         'truncation_rate': 0.5},
         "particle_swarm_optimisation": 
         {'n_iteration': int(math.sqrt(budget) / 4), 
          'n_particles': int(budget / (math.sqrt(budget) / 4))}
     }
     result = d[solver]
+    result['mutation'] = "mutate_position_wise_ind"
     result['return_history'] = True
     return result
 
@@ -65,8 +76,12 @@ size_cats = ["small", "medium", "large"]
 # PTO generators (not target generators)
 generators = {
     "OneMax": (onemax_gen,),
-    "Sphere": (sphere_gen,),
-    "BFS-CNF": (sr_depth_gen,),
+    # "Sphere": (sphere_gen,),
+    "BFS-CNF1": (sr_depth_gen,),
+    "BFS-CNF2": (sr_depth_gen,),
+    "BFS-CNF3": (sr_depth_gen,),
+    "BFS-CNF4": (sr_depth_gen,),
+    "BFS-CNF5": (sr_depth_gen,),
     "BFS-Full": (sr_depth_gen,),
     "BFS-EvenParity": (sr_depth_gen,),
 }
@@ -79,13 +94,19 @@ def run_one_correlogram_rep(rep):
         for size, budget, size_cat in zip(sizes, budgets, size_cats):
 
             print("CORRELATION", "rep", rep, problem_name, size)
+            seed(rep) # random.seed(rep) # seed before constructing the problem
             problem = ctor(size)
 
             if "BFS" in problem_name:
-                assert size % 3 == 0 # symbolic_regression.py (BFS) generators assume this
+                target_str = problem.fit_args[2]
 
             for solver in ["correlogram"]: # a dummy "solver"
-                solver_args = {'avg_dist_tolerance': 0.1, 'n_samples': 1000, 'n_walks': 20, 'verbose': True} # any other args needed for correlogram?
+                solver_args = {'avg_dist_tolerance': 0.1, 
+                               'mutation': "mutate_point_ind",
+                               'walk_len': 20, 
+                               'n_walks': 50, 
+                               'verbose': True} # any other args needed for correlogram?
+
                 if "BFS" in problem_name:
                     solver_args['run_structural_mutation_filter'] = True 
                 for dist_type in ['coarse']: # ['coarse', 'fine']:
@@ -103,9 +124,8 @@ def run_one_correlogram_rep(rep):
                                 raise ValueError("Unexpected generator")
                             
 
-
                             # RUN correlogram
-                            seed(rep) # random.seed(rep)
+                            seed(rep) # random.seed(rep) # seed again before the run. thus both problem and run are controlled
                             start_time = time.time()
                             (x_axis, y_axis, p_axis, n_axis, 
                              cor_length, diameter, onestep_cor, 
@@ -133,6 +153,7 @@ def run_one_correlogram_rep(rep):
                             np.save(dist_filename, dist_matrix)
                             fit_filename = csv_filename[:-4] + "_fitness.npy"
                             np.save(fit_filename, fitvals)
+                            
 
                             print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {cor_length} {onestep_cor} {diameter} {sr_structural_change_cor} {sr_average_parent_length} {g_avg_dist} {g_total_var} {g_norm_corr_length} {g_nugget}')
                             results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, cor_length, onestep_cor, diameter, sr_structural_change_cor, sr_average_parent_length, g_avg_dist, g_total_var, g_norm_corr_length, g_nugget))
@@ -147,8 +168,12 @@ def run_one_solver_rep(rep):
     for problem_name, sizes, budgets, ctor in problems_sizess_budgetss_ctors:    
         for size, budget, size_cat in zip(sizes, budgets, size_cats):
 
-            print(problem_name, size, budget)
+            print("SOLVER", "rep", rep, problem_name, size)
+            seed(rep) # random.seed(rep) # seed before constructing the problem
             problem = ctor(size)
+
+            assert "BFS" in problem_name # for BFS problems fit_args are (X, y, target_str)
+            target_str = problem.fit_args[2] 
 
             def make_callback(better=min, pop_based=False, n_iters_no_improve=100):
                 history = []
@@ -171,7 +196,7 @@ def run_one_solver_rep(rep):
                     return False
                 return terminate_opt_no_improve
 
-            for solver in ["genetic_algorithm", "random_search", "hill_climber"]: 
+            for solver in ["genetic_algorithm", "random_search", "hill_climber"]:
                 solver_args = solvers_argss(solver, budget)
 
                 for dist_type in ['coarse']: # ['coarse', 'fine']:
@@ -187,6 +212,7 @@ def run_one_solver_rep(rep):
                                 generator_name = "sr-depth-gen"
                             else:
                                 raise ValueError("Unexpected generator") 
+                                              
                             
                             if solver == 'genetic_algorithm' or solver == 'particle_swarm_optimisation':
                                 # stop if no improvement during a segment of length 50% of the run
@@ -208,9 +234,10 @@ def run_one_solver_rep(rep):
 
                             # if dist_type != 'coarse': continue
                             # if name_type != 'str': continue
-                            # if problem_name != 'OneMax': continue
-                            # if size_cat != "small": continue
-                            # if solver != 'hill_climber': continue
+                            #if problem_name != 'BFS-EvenParity': continue
+                            #if size_cat != "large": continue
+                            #if solver != 'random_search': continue
+                            
                             # if generator != onemax_gen: continue                        
                         
 
@@ -236,20 +263,17 @@ def run_one_solver_rep(rep):
                             hist_len = len(history)
 
                             # Downsample history for hill_climber and random_search to avoid huge files
-                            if solver in ['hill_climber', 'random_search']:
-                                history_to_save = downsample_history(history, max_samples=1000)
-                            else:
-                                history_to_save = history
-
-                            filename = f'outputs/history_{problem_name}_{size}_{size_cat}_{solver}_{budget}_{dist_type}_{name_type}_{generator_name}_{rep}.csv'.replace(' ', '_')
-                            history_df = pd.DataFrame(history_to_save, columns=['fitness'])
+                            # For GA with max_samples 1000 there will be no effect
+                            history_df = downsample_history(history, max_samples=1000)
+                            filename = f'outputs/histories_2026_01_22/history_{problem_name}_{size}_{size_cat}_{solver}_{budget}_{dist_type}_{name_type}_{generator_name}_2overlen_{rep}.csv'.replace(' ', '_')
                             history_df.to_csv(filename)
+                            #print("NOT SAVING HISTORY")
 
-                            print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} {rep} {elapsed} {fx} {norm_fx} {geno_size} {hist_len} "{pheno}" "{geno}"')
-                            results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, rep, elapsed, fx, norm_fx, geno_size, hist_len, str(pheno), str(geno)))
+                            print(f'{problem_name} {size} {size_cat} {solver} {budget} {dist_type} {name_type} {generator_name} 2 {rep} {elapsed} {fx} {norm_fx} {geno_size} {hist_len} "{target_str}" "{pheno}" "{geno}"')
+                            results.append((problem_name, size, size_cat, solver, budget, dist_type, name_type, generator_name, 2, rep, elapsed, fx, norm_fx, geno_size, hist_len, str(target_str), str(pheno), str(geno)))
 
 
-    columns = "problem size size_cat solver budget dist_type name_type generator rep elapsed fx norm_fx geno_size hist_len pheno geno".split(" ")
+    columns = "problem size size_cat solver budget dist_type name_type generator mutoverlen rep elapsed fx norm_fx geno_size hist_len target pheno geno".split(" ")
     df = pd.DataFrame.from_records(columns=columns, data=results)
     return df
 
@@ -258,48 +282,62 @@ def run_one_solver_rep(rep):
 def downsample_history(history, max_samples=1000):
     """
     Downsample history to at most max_samples, always keeping first and last values.
+    Preserves true iteration indices by converting to DataFrame first.
 
     Args:
         history: list of fitness values
         max_samples: maximum number of samples to keep
 
     Returns:
-        downsampled list of fitness values
+        DataFrame with 'fitness' column and iteration index
     """
-    if len(history) <= max_samples:
-        return history
+    # Convert to DataFrame with true iteration index
+    df = pd.DataFrame({'fitness': history})
+
+    if len(df) <= max_samples:
+        return df
 
     # Always keep first and last
-    downsampled = [history[0]]
+    indices_to_keep = [0]
 
     # Sample evenly from the middle
     # We need (max_samples - 2) samples from the middle
     middle_samples = max_samples - 2
-    indices = np.linspace(1, len(history) - 2, middle_samples, dtype=int)
+    middle_indices = np.linspace(1, len(df) - 2, middle_samples, dtype=int)
+    indices_to_keep.extend(middle_indices.tolist())
 
-    for idx in indices:
-        downsampled.append(history[idx])
+    # Add the last index
+    indices_to_keep.append(len(df) - 1)
 
-    # Add the last value
-    downsampled.append(history[-1])
-
-    return downsampled
+    # Return downsampled DataFrame with preserved indices
+    return df.iloc[indices_to_keep]
     
 
 if __name__ == '__main__':
     # # Test autocorrelation analysis
-    df = run_one_correlogram_rep(0)
-    df.to_csv('outputs/results_2026_01_07_correlogram.csv')
-    import sys; sys.exit()
+    # df = run_one_correlogram_rep(0)
+    # df.to_csv('outputs/results_2026_01_26_correlogram_rep0.csv')
+    # # print("NOT SAVING")
+    # import sys; sys.exit()
 
-    # df = run_one_solver_rep(0)
+    import os
+    with Pool(processes=1) as pool:
+        results_dfs = pool.map(run_one_correlogram_rep, range(10, 11))
+        combined_df = pd.concat(results_dfs, ignore_index=True)
+    combined_df.to_csv('outputs/results_2026_01_26_correlogram_rep10.csv')
+    print(combined_df)
 
-    # n_reps = 20
+    # df = run_one_solver_rep(2)
+    # print("NOT SAVING COMBINED DF")
+    # print(df)
+    # df.to_csv("outputs/temp_tests.csv")
+
+    # n_reps = 7
     # import os
     # with Pool(processes=os.cpu_count() - 1) as pool:
-    #     results_dfs = pool.map(run_one_solver_rep, range(n_reps))
+    #     results_dfs = pool.map(run_one_solver_rep, range(14, 20))
     #     combined_df = pd.concat(results_dfs, ignore_index=True)
-    # combined_df.to_csv('outputs/results_2026_01_07_correlogram_solver.csv')
+    # combined_df.to_csv('outputs/results_2026_01_22_correlogram_solver_positionwise_2overlen_CNF_clauselen_reps14_19.csv')
     # print(combined_df)
 
  
