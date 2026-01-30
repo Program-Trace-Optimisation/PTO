@@ -1,0 +1,119 @@
+/* PTO Playground — Styles */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1e1e1e;
+  --panel: #252526;
+  --border: #3c3c3c;
+  --text: #cccccc;
+  --text-muted: #888888;
+  --accent: #569cd6;
+  --accent-hover: #6cb0f0;
+  --green: #6a9955;
+  --orange: #ce9178;
+  --btn-bg: #0e639c;
+  --btn-hover: #1177bb;
+  --btn-stop: #c24040;
+  --btn-stop-hover: #d65050;
+}
+
+html, body { height: 100%; font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); }
+
+/* Layout: header + main (left panel + right panel) */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+header h1 { font-size: 16px; font-weight: 600; color: var(--accent); }
+header select, header button {
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg); color: var(--text); font-size: 13px; cursor: pointer;
+}
+header select:hover, header button:hover { border-color: var(--accent); }
+
+.controls { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.controls label { font-size: 12px; color: var(--text-muted); }
+.controls select { min-width: 100px; }
+.controls input[type="number"] { width: 70px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 13px; }
+
+#btn-run {
+  padding: 5px 16px; background: var(--btn-bg); border: none; border-radius: 4px;
+  color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+#btn-run:hover { background: var(--btn-hover); }
+#btn-run.running { background: var(--btn-stop); }
+#btn-run.running:hover { background: var(--btn-stop-hover); }
+
+main { display: flex; flex: 1; overflow: hidden; }
+
+/* Left panel: editors */
+.left-panel {
+  width: 50%; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+.editor-tabs {
+  display: flex; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.editor-tab {
+  padding: 6px 16px; font-size: 12px; cursor: pointer;
+  color: var(--text-muted); border-bottom: 2px solid transparent;
+}
+.editor-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.editor-container { flex: 1; position: relative; }
+.editor-box {
+  position: absolute; inset: 0; display: none;
+}
+.editor-box.active { display: block; }
+
+/* Right panel: output */
+.right-panel {
+  width: 50%; display: flex; flex-direction: column;
+}
+.output-tabs {
+  display: flex; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.output-tab {
+  padding: 6px 16px; font-size: 12px; cursor: pointer;
+  color: var(--text-muted); border-bottom: 2px solid transparent;
+}
+.output-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+.output-container { flex: 1; position: relative; overflow: hidden; }
+.output-pane { position: absolute; inset: 0; display: none; overflow: auto; padding: 12px; }
+.output-pane.active { display: block; }
+
+/* Chart */
+#chart-pane canvas { width: 100% !important; max-height: 100%; }
+
+/* Trace viewer */
+#trace-pane { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 13px; }
+#trace-pane table { width: 100%; border-collapse: collapse; }
+#trace-pane th, #trace-pane td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+#trace-pane th { color: var(--accent); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+#trace-pane td.key { color: var(--orange); }
+#trace-pane td.val { color: var(--green); }
+
+/* Log */
+#log-pane {
+  font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 12px;
+  white-space: pre-wrap; color: var(--text-muted);
+}
+#log-pane .log-info { color: var(--text); }
+#log-pane .log-best { color: var(--green); font-weight: 600; }
+#log-pane .log-error { color: #f44747; }
+
+/* Solution viewer */
+#solution-pane {
+  font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 13px;
+}
+#solution-pane .label { color: var(--accent); font-weight: 600; margin-bottom: 4px; }
+#solution-pane .value { color: var(--text); margin-bottom: 16px; white-space: pre-wrap; word-break: break-all; }
+
+/* Status bar */
+#status-bar {
+  padding: 4px 16px; background: var(--btn-bg); color: #fff; font-size: 12px;
+  display: flex; align-items: center; gap: 12px;
+}
+#status-bar.idle { background: var(--panel); color: var(--text-muted); }

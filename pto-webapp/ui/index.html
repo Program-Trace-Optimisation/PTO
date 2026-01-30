@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PTO Playground</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Monaco Editor from CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css" />
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header / toolbar -->
+  <header>
+    <h1>PTO Playground</h1>
+    <select id="example-select" title="Load example problem">
+      <option value="">— Load Example —</option>
+    </select>
+
+    <div class="controls">
+      <label>Solver</label>
+      <select id="solver-select">
+        <option value="hillClimber">Hill Climber</option>
+        <option value="geneticAlgorithm">Genetic Algorithm</option>
+        <option value="randomSearch">Random Search</option>
+      </select>
+
+      <label>Naming</label>
+      <select id="naming-select">
+        <option value="linear">Linear</option>
+        <option value="structural">Structural</option>
+      </select>
+
+      <label>Dist</label>
+      <select id="dist-select">
+        <option value="coarse">Coarse</option>
+        <option value="fine">Fine</option>
+      </select>
+
+      <label>Iterations</label>
+      <input type="number" id="iterations-input" value="200" min="1" max="100000" />
+
+      <button id="btn-run">Run</button>
+    </div>
+  </header>
+
+  <!-- Main area -->
+  <main>
+    <!-- Left: code editors -->
+    <div class="left-panel">
+      <div class="editor-tabs">
+        <div class="editor-tab active" data-target="generator-editor">Generator</div>
+        <div class="editor-tab" data-target="fitness-editor">Fitness</div>
+      </div>
+      <div class="editor-container">
+        <div id="generator-editor" class="editor-box active"></div>
+        <div id="fitness-editor" class="editor-box"></div>
+      </div>
+    </div>
+
+    <!-- Right: output panels -->
+    <div class="right-panel">
+      <div class="output-tabs">
+        <div class="output-tab active" data-target="chart-pane">Chart</div>
+        <div class="output-tab" data-target="solution-pane">Solution</div>
+        <div class="output-tab" data-target="trace-pane">Trace</div>
+        <div class="output-tab" data-target="log-pane">Log</div>
+      </div>
+      <div class="output-container">
+        <div id="chart-pane" class="output-pane active">
+          <canvas id="fitness-chart"></canvas>
+        </div>
+        <div id="solution-pane" class="output-pane"></div>
+        <div id="trace-pane" class="output-pane"></div>
+        <div id="log-pane" class="output-pane"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Status bar -->
+  <div id="status-bar" class="idle">Ready</div>
+
+</div>
+
+<!-- PTO engine bundle -->
+<script src="pto-bundle.js"></script>
+
+<!-- Monaco loader -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+<!-- App logic -->
+<script src="app.js"></script>
+</body>
+</html>

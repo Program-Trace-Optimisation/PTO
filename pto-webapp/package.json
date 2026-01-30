@@ -1,0 +1,17 @@
+{
+  "name": "pto-webapp",
+  "version": "0.1.0",
+  "description": "PTO (Program Trace Optimisation) playground — JS implementation",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "build": "esbuild src/browser.js --bundle --format=iife --global-name=PTO --outfile=ui/pto-bundle.js"
+  },
+  "dependencies": {
+    "acorn": "^8.15.0",
+    "astring": "^1.9.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.2"
+  }
+}
