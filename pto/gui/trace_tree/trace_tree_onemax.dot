@@ -1,0 +1,76 @@
+digraph trace_tree {
+	graph [nodesep=0.4 rankdir=TB ranksep=0.6]
+	node [fontname=Helvetica fontsize=11]
+	edge [arrowsize=0.6]
+	n1 [label=root shape=box style=rounded]
+	n2 [label="iter@(2,6):0" shape=box style=rounded]
+	n1 -> n2
+	n3 [label="choice -> 0" shape=box]
+	n2 -> n3
+	n4 [label="iter@(2,6):1" shape=box style=rounded]
+	n1 -> n4
+	n5 [label="choice -> 1" shape=box]
+	n4 -> n5
+	n6 [label="iter@(2,6):2" shape=box style=rounded]
+	n1 -> n6
+	n7 [label="choice -> 0" shape=box]
+	n6 -> n7
+	n8 [label="iter@(2,6):3" shape=box style=rounded]
+	n1 -> n8
+	n9 [label="choice -> 1" shape=box]
+	n8 -> n9
+	n10 [label="iter@(2,6):4" shape=box style=rounded]
+	n1 -> n10
+	n11 [label="choice -> 1" shape=box]
+	n10 -> n11
+	n12 [label="iter@(2,6):5" shape=box style=rounded]
+	n1 -> n12
+	n13 [label="choice -> 0" shape=box]
+	n12 -> n13
+	n14 [label="iter@(2,6):6" shape=box style=rounded]
+	n1 -> n14
+	n15 [label="choice -> 1" shape=box]
+	n14 -> n15
+	n16 [label="iter@(2,6):7" shape=box style=rounded]
+	n1 -> n16
+	n17 [label="choice -> 1" shape=box]
+	n16 -> n17
+	n18 [label="iter@(2,6):8" shape=box style=rounded]
+	n1 -> n18
+	n19 [label="choice -> 1" shape=box]
+	n18 -> n19
+	n20 [label="iter@(2,6):9" shape=box style=rounded]
+	n1 -> n20
+	n21 [label="choice -> 0" shape=box]
+	n20 -> n21
+	{
+		rank=same
+		n1
+	}
+	{
+		rank=same
+		n2
+		n4
+		n6
+		n8
+		n10
+		n12
+		n14
+		n16
+		n18
+		n20
+	}
+	{
+		rank=sink
+		n3
+		n5
+		n7
+		n9
+		n11
+		n13
+		n15
+		n17
+		n19
+		n21
+	}
+}

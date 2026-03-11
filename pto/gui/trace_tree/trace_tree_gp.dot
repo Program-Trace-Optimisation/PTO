@@ -1,0 +1,136 @@
+digraph trace_tree {
+	graph [nodesep=0.4 rankdir=TB ranksep=0.6]
+	node [fontname=Helvetica fontsize=11]
+	edge [arrowsize=0.6]
+	n1 [label=root shape=box style=rounded]
+	n2 [label="rnd_expr(4,)@(14,66)" shape=box style=rounded]
+	n1 -> n2
+	n3 [label="random -> 0.6787" shape=box]
+	n2 -> n3
+	n4 [label="choice -> ('and', 2)" shape=box]
+	n2 -> n4
+	n5 [label="rnd_expr(3,)@(11,358)" shape=box style=rounded]
+	n2 -> n5
+	n6 [label="random -> 0.8768" shape=box]
+	n5 -> n6
+	n7 [label="choice -> ('and', 2)" shape=box]
+	n5 -> n7
+	n8 [label="rnd_expr(2,)@(11,358)" shape=box style=rounded]
+	n5 -> n8
+	n9 [label="random -> 0.8425" shape=box]
+	n8 -> n9
+	n10 [label="choice -> ('not', 1)" shape=box]
+	n8 -> n10
+	n11 [label="rnd_expr(1,)@(9,320)" shape=box style=rounded]
+	n8 -> n11
+	n12 [label="random -> 0.9231" shape=box]
+	n11 -> n12
+	n13 [label="choice -> ('not', 1)" shape=box]
+	n11 -> n13
+	n14 [label="rnd_expr(0,)@(9,320)" shape=box style=rounded]
+	n11 -> n14
+	n15 [label="choice -> x[3]" shape=box]
+	n14 -> n15
+	n16 [label="rnd_expr(2,)@(11,394)" shape=box style=rounded]
+	n5 -> n16
+	n17 [label="random -> 0.8379" shape=box]
+	n16 -> n17
+	n18 [label="choice -> ('not', 1)" shape=box]
+	n16 -> n18
+	n19 [label="rnd_expr(1,)@(9,320)" shape=box style=rounded]
+	n16 -> n19
+	n20 [label="random -> 0.2756" shape=box]
+	n19 -> n20
+	n21 [label="choice -> x[1]" shape=box]
+	n19 -> n21
+	n22 [label="rnd_expr(3,)@(11,394)" shape=box style=rounded]
+	n2 -> n22
+	n23 [label="random -> 0.8495" shape=box]
+	n22 -> n23
+	n24 [label="choice -> ('not', 1)" shape=box]
+	n22 -> n24
+	n25 [label="rnd_expr(2,)@(9,320)" shape=box style=rounded]
+	n22 -> n25
+	n26 [label="random -> 0.5898" shape=box]
+	n25 -> n26
+	n27 [label="choice -> ('or', 2)" shape=box]
+	n25 -> n27
+	n28 [label="rnd_expr(1,)@(11,358)" shape=box style=rounded]
+	n25 -> n28
+	n29 [label="random -> 0.5797" shape=box]
+	n28 -> n29
+	n30 [label="choice -> ('or', 2)" shape=box]
+	n28 -> n30
+	n31 [label="rnd_expr(0,)@(11,358)" shape=box style=rounded]
+	n28 -> n31
+	n32 [label="choice -> x[3]" shape=box]
+	n31 -> n32
+	n33 [label="rnd_expr(0,)@(11,394)" shape=box style=rounded]
+	n28 -> n33
+	n34 [label="choice -> x[2]" shape=box]
+	n33 -> n34
+	n35 [label="rnd_expr(1,)@(11,394)" shape=box style=rounded]
+	n25 -> n35
+	n36 [label="random -> 0.08237" shape=box]
+	n35 -> n36
+	n37 [label="choice -> x[0]" shape=box]
+	n35 -> n37
+	{
+		rank=same
+		n1
+	}
+	{
+		rank=same
+		n2
+	}
+	{
+		rank=same
+		n5
+		n22
+	}
+	{
+		rank=same
+		n8
+		n16
+		n25
+	}
+	{
+		rank=same
+		n11
+		n19
+		n28
+		n35
+	}
+	{
+		rank=same
+		n14
+		n31
+		n33
+	}
+	{
+		rank=sink
+		n3
+		n4
+		n6
+		n7
+		n9
+		n10
+		n12
+		n13
+		n15
+		n17
+		n18
+		n20
+		n21
+		n23
+		n24
+		n26
+		n27
+		n29
+		n30
+		n32
+		n34
+		n36
+		n37
+	}
+}
