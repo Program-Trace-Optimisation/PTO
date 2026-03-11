@@ -1,6 +1,8 @@
 import random
 from .compiler import compile_generator
 from ..fine_distributions import run as fine_run
+from ..base.tracer import tracer as base_tracer
+from ..base.trace_operators import Op
 
 
 def run(Gen, *args, seed=None, **kwargs):
@@ -18,6 +20,11 @@ def run(Gen, *args, seed=None, **kwargs):
     needed here: names are always structural (compiled from AST locations)
     and dist_type is forwarded to fine_distributions as-is.
     """
+    # compiled_names uses fine_distributions.rnd whose tracer is base_tracer;
+    # reset the class-level Op.tracer to match (it may have been set to
+    # AutoPlayTracer by a prior automatic_names.run call).
+    Op.tracer = base_tracer
+
     if seed is not None:
         rng_state = random.getstate()
         random.seed(seed)

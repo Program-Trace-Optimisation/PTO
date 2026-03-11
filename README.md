@@ -149,7 +149,7 @@ If adding a solver, we recommend to use the argument names:
 
 # Tests
 
-We have a proof-of-concept test suite. Run:
+We have a test suite. Run:
 
 `$ make test`
 
@@ -163,5 +163,5 @@ Please help us by submitting bug reports! Thanks!
 
 # Old version of PTO
 
-A previous version of PTO was described in two papers, published at EuroGP 2018 and EvoCOP 2019. If you wish to access that version for reproducibility of those papers, please see [this repo](https://github.com/Program-Trace-Optimisation/PTO_EvoSTAR_2018_EvoCOP_2019). [A draft of the EuroGP 2018 appers](docs/paper_2018.pdf) is available.
+A previous version of PTO was described in two papers, published at EuroGP 2018 and EvoCOP 2019. If you wish to access that version for reproducibility of those papers, please see [this repo](https://github.com/Program-Trace-Optimisation/PTO_EvoSTAR_2018_EvoCOP_2019). [A draft of the EuroGP 2018 paper](docs/paper_2018.pdf) is available.
 
