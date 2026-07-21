@@ -15,7 +15,7 @@
  * @param {number}  [opts.populationSize=50]      Population size
  * @param {number}  [opts.nGeneration=100]        Number of generations
  * @param {number}  [opts.truncationRate=0.5]     Fraction selected as parents
- * @param {number}  [opts.mutationRate=0.05]      Per-individual mutation probability
+ * @param {number}  [opts.mutationRate=1.00]      Per-individual mutation probability
  * @param {string}  [opts.mutation='mutatePositionWiseInd']  Mutation operator
  * @param {string}  [opts.crossover='crossoverUniformInd']   Crossover operator
  * @param {Function} [opts.better=Math.max]       Comparison function
@@ -27,7 +27,7 @@ export function geneticAlgorithm(op, {
   populationSize = 50,
   nGeneration = 100,
   truncationRate = 0.5,
-  mutationRate = 0.05,
+  mutationRate = 1.00,
   mutation = 'mutatePositionWiseInd',
   crossover = 'crossoverUniformInd',
   better = Math.max,
