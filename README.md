@@ -2,7 +2,7 @@
 Program Trace Optimisation is a system for 'universal metaheuristic optimization made easy'. This is achieved by strictly separating the problem from the search algorithm.
 New problem definitions and new generic search algorithms ('solvers') can be added to PTO easily and independently, and any algorithm can be used on any problem. PTO automatically extracts knowledge from the problem specification and designs search operators for the problem. The operators designed by PTO for standard representations coincide with existing ones, but PTO automatically designs operators for arbitrary representations.
 
-This repository contains code implementing PTO in Python. The library itself is in `pto`, with `tests` and `docs` (in progress).
+This repository contains code implementing PTO in Python. The library itself is in `pto`, with `tests` and `docs` (in progress); see [Working on PTO](#working-on-pto) for the full layout.
 
 # Online demo
 
@@ -71,9 +71,22 @@ Because `rnd` mimics the `random` module API, we can test and debug our generato
 outside PTO, using `import random as rnd`, and then bring it into PTO by instead using
 `from pto import run, rnd`.
 
-The generator can call sub-functions, but they have to defined as nested
-functions inside the generator function. (There is another approach which relaxes this
-rule. TODO: document that approach elsewhere.)
+`rnd` supports the random functions of the `random` module: `random`, `uniform`, `triangular`,
+`gauss` and the other continuous distributions, `randint`, `randrange`, `choice`, `choices`,
+`sample` and `shuffle`.
+
+PTO reads the generator's source code to give each random decision a name that reflects
+where it happens in the program (which loop iteration, which function call). So:
+
+* The generator must be an ordinary function defined with `def`, in a `.py` file or a notebook
+  cell. Lambdas and methods of a class do not work.
+* The generator can call helper functions. Helpers that make random decisions work best
+  nested inside the generator function: helpers defined outside it also work, but their random
+  decisions get less informative names.
+* The generator can use global variables and modules as usual.
+
+On Google Colab, these names have been seen to differ between solutions of the same generator
+defined in a notebook cell. If that happens, define the generator in a `.py` file and import it.
 
 ## Different operators
 
@@ -138,7 +151,62 @@ We can also pass a callback to be called by the solver, eg:
 
 `run(generator, fitness, callback=lambda x: print(f"Hello from Solver callback! {x}"))`
 
+The callback receives the search state `(sol, fx, generation)`; if it returns a true value,
+the solver stops early.
+
+For reproducible runs, pass a seed: `run(generator, fitness, seed=42)`.
+
 Several more examples are available in [pto/problems/*.py](pto/problems/).
+
+## Writing your own solver
+
+A solver is any class that `run()` can create as `Solver(op, better=..., callback=..., **solver_args)`
+and then call with no arguments, returning `(sol, fx, num_gen)`. `op` provides the search
+operators designed by PTO for the problem: `op.create_ind()`, `op.evaluate_ind(sol)`,
+`op.mutate_ind(sol)`, `op.crossover_ind(sol1, sol2)` and `op.distance_ind(sol1, sol2)`.
+A solver never needs to know what the solutions look like.
+
+```python
+from pto import run, rnd
+
+class restart_hill_climber:
+    def __init__(self, op, better=max, callback=None, n_generation=100, n_restarts=5):
+        self.op, self.better = op, better
+        self.n_generation, self.n_restarts = n_generation, n_restarts
+
+    def __call__(self):
+        best = None
+        for _ in range(self.n_restarts):
+            sol = self.op.create_ind()
+            fx = self.op.evaluate_ind(sol)
+            for _ in range(self.n_generation):
+                child = self.op.mutate_ind(sol)
+                fc = self.op.evaluate_ind(child)
+                sol, fx = self.better([(sol, fx), (child, fc)], key=lambda s: s[1])
+            best = (sol, fx) if best is None else self.better([best, (sol, fx)], key=lambda s: s[1])
+        return best[0], best[1], self.n_restarts * self.n_generation
+
+def generator(): return [rnd.choice([0, 1]) for i in range(10)]
+(pheno, geno), fx, num_gen = run(generator, sum, better=max,
+                                 Solver=restart_hill_climber, solver_args={'n_restarts': 3})
+```
+
+Pass the class itself as `Solver`, so it can live in your own file. To make it available by
+name (`Solver='restart_hill_climber'`), put it in `pto/solvers/restart_hill_climber.py`, with
+the class named like the file. See [pto/solvers/hill_climber.py](pto/solvers/hill_climber.py)
+for a solver that also supports `callback`, `verbose` and `return_history`.
+
+## Experimenting with the operators
+
+`run(..., Solver='search_operators')` does not run a search: it returns the `op` object, so
+you can study the operators on their own:
+
+```python
+op = run(generator, sum, better=max, Solver='search_operators')
+parent = op.create_ind()
+child = op.mutate_ind(parent)
+print(parent.pheno, child.pheno, op.distance_ind(parent, child))
+```
 
 
 
@@ -159,23 +227,47 @@ Some fun projects for students could include:
 The [ROAR-NET COST Action](https://roar-net.eu/) has working groups relevant to the goals of PTO. PTO has been presented there. COST Action members are especially invited to contact us and join in development. A COST Action Short-Term Scientific Mission is available also.
 
 
+# Working on PTO
+
+To work on your own copy, fork the repository on GitHub, clone your fork, and install it in
+editable mode as described under [Installation](#installation).
+
+Where things are:
+
+* `pto/` - the library. `pto/problems/` has example problems, `pto/solvers/` the solvers,
+  `pto/core/` the tracing machinery (see [DEVELOPERS.md](DEVELOPERS.md)).
+* `tests/` - unit tests (`.py`) and test notebooks (`.ipynb`).
+* `scripts/` - experiments for research projects, one folder per project (see
+  [scripts/README.md](scripts/README.md)). Put a new project in its own folder there.
+* `docs/` - figures used in documentation.
+* `pto-webapp/` and `pto-scheme/` - experimental ports of PTO to JavaScript and Racket.
+
 # Code style
 
 If adding a solver, we recommend to use the argument names:
 
 * `n_generation` for the number of iterations of the search algorithm
-
-(More to come here.)
+* `better`, `callback`, `verbose` and `return_history` with the same meaning as in
+  [hill_climber.py](pto/solvers/hill_climber.py)
 
 # Tests
 
-We have a test suite. Run:
+Run the unit tests (from the repository root):
 
 `$ make test`
 
-It will discover unit tests under `tests/`
+or, without `make` (eg on Windows):
 
-We have more tests in `.ipynb` files, which (TODO) we will gradually convert to automated unit tests.
+`$ python -m unittest discover -s tests -t .`
+
+To also execute every test notebook (needs `pip install -e ".[dev]"`):
+
+`$ make test-notebooks`
+
+When you change the code, run the tests before and after. When you add a problem or a
+solver, add a test for it under `tests/`, eg in
+[tests/pto/test_problems.py](tests/pto/test_problems.py) or
+[tests/pto/test_user_api.py](tests/pto/test_user_api.py).
 
 Please help us by submitting bug reports! Thanks!
 

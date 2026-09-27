@@ -87,6 +87,32 @@ class TestReadmeExamples(unittest.TestCase):
             solver_args={"n_generation": 3})
         self.assertTrue(len(calls) > 0)
 
+    def test_callback_can_stop_search(self):
+        calls = []
+        def stop_after_3(state):
+            calls.append(state)
+            return len(calls) >= 3
+        run(generator, sum, better=max, callback=stop_after_3,
+            solver_args={"n_generation": 100})
+        self.assertEqual(len(calls), 3)
+        sol, fx, gen = calls[-1]
+        self.assertEqual(fx, sum(sol.pheno))
+
+    def test_seed_reproducible(self):
+        results = [run(generator, sum, better=max, seed=42,
+                       solver_args={"n_generation": 5})[0].pheno for _ in range(2)]
+        self.assertEqual(results[0], results[1])
+
+    def test_custom_solver_class(self):
+        class one_shot:
+            def __init__(self, op, better=max, callback=None):
+                self.op = op
+            def __call__(self):
+                sol = self.op.create_ind()
+                return sol, self.op.evaluate_ind(sol), 0
+        (pheno, geno), fx, num_gen = run(generator, sum, Solver=one_shot)
+        self.assertEqual(fx, sum(pheno))
+
     def test_search_operators(self):
         op = run(generator, sum, better=max, Solver="search_operators")
         sol = op.create_ind()

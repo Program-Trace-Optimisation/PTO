@@ -104,15 +104,17 @@ def run(Gen, *args, seed=None, **kwargs):
     return result
 
 
-# FEATURES/LIMITATIONS:
+# FEATURES/LIMITATIONS (checked 2026-09):
 #
-# 1) To affect naming, all functions called by the generator must be nested in the generator function definition (silent problem/error)
+# 1) To affect naming, functions called by the generator must be nested in the generator function
+#    definition. Non-nested helpers still work, but their rnd calls get no call-site frame in
+#    their names (silent).
 #
-# 2) the generator cannot refer to global variables/names (error)
+# 2) generators cannot be defined as methods in classes, or as lambdas (error), since the
+#    generator's source is re-parsed.
 #
-# 3) all primitive generators are magically available without import and must start with 'rnd.' (error)
-#
-# 4) generators cannot be defined as methods in classes (error)
+# (Earlier limitations no longer apply: generators can refer to global names, and rnd can be
+#  used under another name, eg `from pto import rnd as random`.)
 
 
 # Gen = gen(Gen, level=2, skipline=False)
