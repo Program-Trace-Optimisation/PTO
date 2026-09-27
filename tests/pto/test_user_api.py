@@ -210,9 +210,11 @@ class TestSolverImport(unittest.TestCase):
     def test_missing_dependency_is_reported(self):
         with mock.patch.dict(sys.modules, {"skgstat": None}):
             sys.modules.pop("pto.solvers.correlogram", None)
+            # the solver's missing dependency is reported (skgstat, or numpy/scipy
+            # first if those are missing too), not "Unknown solver"
             with self.assertRaises(ImportError) as cm:
                 run(generator, sum, Solver="correlogram")
-            self.assertEqual(cm.exception.name, "skgstat")
+            self.assertIn(cm.exception.name, {"numpy", "scipy", "skgstat"})
 
 
 if __name__ == "__main__":
