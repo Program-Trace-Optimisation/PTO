@@ -24,7 +24,7 @@ landscape = ["numpy", "scipy", "matplotlib", "scikit-gstat"]
 # Jupyter GUI and trace-tree visualisation (trace trees also need the Graphviz binaries)
 gui = ["ipywidgets", "ipython", "matplotlib", "graphviz"]
 all = ["PTO[examples,landscape,gui]"]
-dev = ["PTO[all]", "coverage"]
+dev = ["PTO[all]", "coverage", "nbconvert", "ipykernel"]
 
 [project.urls]
 Homepage = "https://github.com/Program-Trace-Optimisation/PTO"
