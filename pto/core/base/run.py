@@ -67,13 +67,20 @@ def run(
 
     # Import the solver dynamically
     if isinstance(Solver, str):
+        module_name = f"pto.solvers.{Solver}"
         try:
-            solver_module = import_module(f"...solvers.{Solver}", package=__package__)
+            solver_module = import_module(module_name)
             Solver = getattr(solver_module, Solver)
-        except (ImportError, AttributeError):
+        except ModuleNotFoundError as e:
+            if e.name != module_name:
+                raise  # the solver exists but one of its dependencies is missing
             raise ValueError(
-                f"Unable to import solver '{Solver}'. Make sure it exists in the solvers module."
-            )
+                f"Unknown solver '{Solver}'. Make sure it exists in the solvers module."
+            ) from None
+        except AttributeError:
+            raise ValueError(
+                f"Solver module '{module_name}' does not define '{Solver}'."
+            ) from None
 
     # Instantiate search algorithm and bind it to search operators
     alg = Solver(op, better=better, callback=callback, **solver_args)

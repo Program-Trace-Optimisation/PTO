@@ -5,23 +5,12 @@ Tests that the compiled_names run() interface works end-to-end:
 compile-time name injection -> fine_distributions -> base -> solver.
 """
 
-import sys
 import random
-import importlib.util
 import unittest
 
 from pto.core.compiled_names.run import run
 from pto.core.fine_distributions.traceables import rnd
-
-# Load hill_climber without triggering solvers/__init__.py, which
-# imports correlogram (requires optional skgstat dependency).
-_spec = importlib.util.spec_from_file_location(
-    "pto.solvers.hill_climber",
-    sys.modules["pto"].__path__[0] + "/solvers/hill_climber.py",
-)
-_hc_module = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_hc_module)
-hill_climber = _hc_module.hill_climber
+from pto.solvers import hill_climber
 
 
 # ============================================================

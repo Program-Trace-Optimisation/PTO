@@ -6,7 +6,9 @@ or the README needs updating.
 """
 
 import random
+import sys
 import unittest
+from unittest import mock
 
 from pto import run, rnd
 
@@ -83,6 +85,27 @@ class TestReadmeExamples(unittest.TestCase):
         op = run(generator, sum, better=max, Solver="search_operators")
         sol = op.create_ind()
         self.assertEqual(op.evaluate_ind(sol), sum(sol.pheno))
+
+
+class TestSolverImport(unittest.TestCase):
+
+    def test_unknown_solver(self):
+        with self.assertRaisesRegex(ValueError, "Unknown solver 'no_such_solver'"):
+            run(generator, sum, Solver="no_such_solver")
+
+    def test_core_solvers_do_not_need_optional_dependencies(self):
+        import pto.solvers
+        self.assertNotIn("pto.solvers.correlogram", pto.solvers.__all__)
+        with mock.patch.dict(sys.modules, {"skgstat": None}):
+            sys.modules.pop("pto.solvers.correlogram", None)
+            run(generator, sum, solver_args={"n_generation": 3})
+
+    def test_missing_dependency_is_reported(self):
+        with mock.patch.dict(sys.modules, {"skgstat": None}):
+            sys.modules.pop("pto.solvers.correlogram", None)
+            with self.assertRaises(ImportError) as cm:
+                run(generator, sum, Solver="correlogram")
+            self.assertEqual(cm.exception.name, "skgstat")
 
 
 if __name__ == "__main__":
