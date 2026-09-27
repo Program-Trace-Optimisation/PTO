@@ -38,4 +38,15 @@
   (test-case "plain nested helper + named let compiles and runs"
     (define tour (tsp-plain))
     (check-equal? (length tour) 5)
-    (check-equal? (list->set tour) (list->set '(A B C D E)))))
+    (check-equal? (list->set tour) (list->set '(A B C D E))))
+
+  (define-generator (opt-gen [n 2] . more)
+    (for/list ([i (in-range (+ n (length more)))]) (rnd-int 0 9)))
+
+  (test-case "plain define-generator accepts optional and rest arguments"
+    (check-equal? (length (opt-gen)) 2)
+    (check-equal? (length (opt-gen 1 'a 'b)) 3))
+
+  (test-case "plain rnd errors match pto.rkt"
+    (check-exn #rx"rnd-choice: empty" (λ () (rnd-choice '())))
+    (check-exn #rx"rnd-int: lo > hi" (λ () (rnd-int 5 1)))))

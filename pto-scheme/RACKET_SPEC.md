@@ -587,7 +587,7 @@ Where `label` is a string or symbol (e.g., the function name, `"loop"`, `"call"`
 
 ### `define-generator` Macro
 
-**Syntax**: `(define-generator (name args ...) body ...)`
+**Syntax**: `(define-generator (name . formals) body ...)`, where `formals` is as in `define` (optional, keyword and rest arguments are allowed).
 
 **Effect**: defines `name` as a function that initialises the name frame stack and executes a transformed body.
 
@@ -613,25 +613,45 @@ The body is transformed by a two-pass process:
 
 `transform(expr, local-fns)` pattern-matches on `expr`. Rules are checked in order; the first match applies.
 
-**T1 — `for/list` with any number of binding clauses:**
+**T1 — iteration forms: `for`, `for/list`, `for*/list`, `for/vector`, `for/sum`, `for/fold`, ... (the `for` and `for*` families):**
 
 ```
-transform((for/list ([x1 s1] [x2 s2] ...) body ...), local-fns)
+transform((for-form option ... [accumulators] (clause ...) body ...), local-fns)
 ```
 
-Let `loop-site = make-site-sym("loop", stx-of-for/list)`.
-Let `__i__` be a fresh variable name (use `gensym` or a fixed mangled name like `__pto-loop-i__`; must not shadow user variables).
+(`option`s are keyword/value pairs such as `for/vector`'s `#:length n`; `accumulators` is present only for `for/fold`, `for*/fold`, `for/foldr`, `for*/foldr`, `for/lists`, `for*/lists`.)
 
-Expands to:
+Let `loop-site = make-site-sym("loop", stx-of-form)`, and `cnt`, `k` fresh variables. The frame counts **executions of the body**:
+
 ```racket
-(for/list ([__i__ (in-naturals)] [x1 s1] [x2 s2] ...)
-  (parameterize ([_name-frames (cons (cons 'loop-site __i__) (_name-frames))])
-    transform(body, local-fns) ...))
+(let ([cnt 0])
+  (for-form option ... [accumulators] (clause ...)
+    (let ([k cnt])
+      (set! cnt (add1 cnt))
+      (parameterize ([_name-frames (cons (cons 'loop-site k) (_name-frames))])
+        transform(body, local-fns) ...))))
 ```
 
-**T2 — `for` (void-returning):**
+Counting body executions, rather than adding an `[__i__ (in-naturals)]` clause, is what makes `for*` forms and `#:when` / `#:unless` work: those nest the clauses after them, so an `in-naturals` clause would count only the outermost loop and repeat names. If the body contains `#:break` or `#:final`, the body forms are transformed but no frame is added.
 
-Same as T1 but using `for` instead of `for/list`.
+**T2 — named `let` (a loop written as recursion):**
+
+```
+transform((let loop ([x e] ...) body ...), local-fns)
+```
+
+Each call of `loop` is one iteration, counted like T1. Let `loop-site = make-site-sym(loop, stx-of-let)`:
+
+```racket
+(let ([cnt 0] [base (_name-frames)])
+  (let loop ([x transform(e, local-fns)] ...)
+    (let ([k cnt])
+      (set! cnt (add1 cnt))
+      (parameterize ([_name-frames (cons (cons 'loop-site k) base)])
+        transform(body, local-fns) ...))))
+```
+
+The frame is pushed on `base`, the frames at loop entry, so names do not grow with the depth of the recursion.
 
 **T3 — nested function definition (f ∈ local-fns):**
 
@@ -692,6 +712,8 @@ transform((cond [test expr] ... [else default]), local-fns)
 → (cond [transform(test) transform(expr)] ... [else transform(default)])
 ```
 
+**T7b — `case`:** transform the key expression and each clause's body; leave the datums unchanged.
+
 **T8 — `begin`:**
 
 ```
@@ -716,9 +738,24 @@ transform((head arg ...), local-fns)
 
 This recursion into args handles things like `(list ...)`, `(cons ...)`, `(apply ...)`, `(+ ...)`, etc. It is safe because non-local `head` is not wrapped with a frame.
 
-**T12 — atom (identifier, literal, `'quoted`):**
+**T12 — atom (identifier, literal), `quote` and `quasiquote` forms:**
 
-Return unchanged.
+Return unchanged: quoted data is data, not code. (Before this rule is applied, T11 would have treated eg `'(flip 1)` as a call when `flip` is a local helper.)
+
+**T13 — `lambda` / `λ`:**
+
+A function may be called many times (by `map`, `for-each`, `build-list`, a `let`-bound variable, ...), so its calls are counted like a loop. Let `lambda-site = make-site-sym("lambda", stx-of-lambda)`:
+
+```racket
+(let ([cnt 0])
+  (lambda formals
+    (let ([k cnt])
+      (set! cnt (add1 cnt))
+      (parameterize ([_name-frames (cons (cons 'lambda-site k) (_name-frames))])
+        transform(body, local-fns) ...))))
+```
+
+T12 (`quote`) and T1/T2/T13 are checked before T3-T11.
 
 ---
 
@@ -726,15 +763,17 @@ Return unchanged.
 
 The following forms are fully supported:
 
-- `(for/list ([x seq]) body ...)`
-- `(for ([x seq]) body ...)`
+- the `for` and `for*` families (`for`, `for/list`, `for*/list`, `for/vector`, `for/sum`, `for/fold`, ...), including `#:when` / `#:unless` clauses
+- named `let` loops, eg `(let loop ([rem cities] [tour '()]) ...)`
+- `lambda` / `λ`, including functions passed to `map`, `for-each`, `build-list`, etc.
+- `(case key [(datum ...) body ...] ...)`, and quoted data
 - `(define (helper args ...) body ...)` at top level of generator body
 - `(helper args ...)` calls to locally-defined helpers
 - `(let ([x e] ...) body ...)`
 - `(let* ([x e] ...) body ...)`
 - `(if cond then [else])`
 - `(cond [test expr] ...)`
-- `(begin e ...)`
+- `(begin e ...)`, `and`, `or`, `when`, `unless`
 - `(rnd-choice seq)`, `(rnd-real lo hi)`, `(rnd-int lo hi)`
 - Any Racket expression passed through unchanged
 
@@ -742,8 +781,9 @@ The following forms are fully supported:
 1. Finite: no unbounded loops or recursion.
 2. No external side effects.
 3. All randomness via `rnd-*` only.
-4. Locally-defined helper functions must appear as top-level `define` forms in the generator body (not inside `let`).
+4. Locally-defined helper functions must appear as top-level `define` forms in the generator body (not inside `let`) to get call-site frames; helpers bound to a `lambda` elsewhere are counted per call instead (T13).
 5. Helper functions must not call each other recursively.
+6. Not handled: `do` loops, and `#:break` / `#:final` inside a `for` body. Two `rnd-*` calls that run with the same structured name raise a "Trace name collision" error.
 
 ---
 
@@ -1084,7 +1124,7 @@ Signature: `(hill-climber gen fit better n-iterations)` where `better` is a two-
     (solver wrapped-gen wrapped-fit better n)))
 ```
 
-`solver` receives `(gen fit better n-iterations)`. The default is `hill-climber`. Additional solvers (GA, random search) may be added later with the same signature.
+`solver` receives `(gen fit better n-iterations)`, plus `#:on-iteration callback` only when `run` is given one (the callback receives `iteration candidate-fitness best-fitness`). The default is `hill-climber`. Additional solvers (GA, random search) may be added later with the same signature.
 
 ---
 

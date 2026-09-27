@@ -105,10 +105,13 @@
    (entry-type e)
    params
    (case (entry-type e)
-     [(cat)  (let ([cs (first params)]) (list-ref cs (random (length cs))))]
+     [(cat)  (let ([cs (first params)])
+               (when (null? cs) (error 'rnd-choice "empty sequence"))
+               (list-ref cs (random (length cs))))]
      [(cont) (let ([lo (first params)] [hi (second params)])
                (+ lo (* (random) (- hi lo))))]
      [(int)  (let ([lo (first params)] [hi (second params)])
+               (when (> lo hi) (error 'rnd-int "lo > hi: ~a > ~a" lo hi))
                (+ lo (random (add1 (- hi lo)))))])))
 
 ;; entry-replay : new-template old-e mode -> entry
@@ -217,7 +220,7 @@
      ;; ---- NEW CRASH-EARLY GUARD ----
      (when (hash-has-key? (trace-ctx-out ctx) name)
        (error 'pto-sample! 
-              "Trace name collision detected: ~s\n  This usually means an unsupported loop form (like a named let) or un-tracked recursion was used inside a generator." 
+              "Trace name collision detected: ~s\n  Two rnd calls ran with the same structured name. This usually means a loop or recursion form that define-generator does not handle (eg `do`, or a helper not defined at the top of the generator body); see Supported Generator Syntax in RACKET_SPEC.md."
               name))
      ;; --------------------------------
      
@@ -292,38 +295,109 @@
         [(define (fname:id . _) . _) (set-add s (syntax-e #'fname))]
         [_ s])))
 
+  ;; Iteration forms. Each gets a counter of BODY EXECUTIONS, pushed as a name
+  ;; frame, so each execution names its rnd calls differently. Counting body
+  ;; executions (rather than adding an (in-naturals) clause) also works for the
+  ;; for* forms and for #:when / #:unless, which nest the clauses after them.
+  (define plain-for-forms
+    (list #'for #'for* #'for/list #'for*/list #'for/vector #'for*/vector
+          #'for/hash #'for*/hash #'for/hasheq #'for*/hasheq #'for/hasheqv #'for*/hasheqv
+          #'for/and #'for*/and #'for/or #'for*/or #'for/first #'for*/first
+          #'for/last #'for*/last #'for/sum #'for*/sum #'for/product #'for*/product
+          #'for/set #'for*/set))
+  ;; ... and those with an accumulator form before the clauses
+  (define accum-for-forms
+    (list #'for/fold #'for*/fold #'for/foldr #'for*/foldr #'for/lists #'for*/lists))
+  (define lambda-forms (list #'lambda #'λ))
+  (define (one-of? id forms)
+    (and (identifier? id) (ormap (λ (f) (free-identifier=? id f)) forms)))
+
+  ;; counted-body : label-site frames-expr bodies -> syntax
+  ;; Wrap already-transformed bodies so that each execution pushes the frame
+  ;; (site . k) onto `frames-expr`, k = 0, 1, 2, ... counting executions.
+  ;; Returns (values init-binding body): the counter must be bound (to 0)
+  ;; outside the iteration form.
+  (define (counted-body site frames-expr bodies)
+    (with-syntax ([(cnt k) (generate-temporaries '(cnt k))]
+                  [(nb ...) bodies]
+                  [frames frames-expr])
+      (values #'[cnt 0]
+              #`(let ([k cnt])
+                  (set! cnt (add1 cnt))
+                  (parameterize ([_name-frames (cons (cons '#,site k) frames)])
+                    nb ...)))))
+
+  ;; (for-form option ... [accumulators] (clause ...) body ...+)
+  ;; options are keyword/value pairs, eg for/vector's #:length n
+  (define (transform-for stx t accum?)
+    (define parts (syntax->list stx))
+    (define hd (car parts))
+    (define-values (opts after-opts)
+      (let loop ([ps (cdr parts)] [acc '()])
+        (if (and (pair? ps) (keyword? (syntax-e (car ps))) (pair? (cdr ps)))
+            (loop (cddr ps) (list* (cadr ps) (car ps) acc))
+            (values (reverse acc) ps))))
+    (define-values (pre rest)
+      (if (and accum? (pair? after-opts))
+          (values (list (car after-opts)) (cdr after-opts))
+          (values '() after-opts)))
+    (cond
+      [(or (null? rest) (null? (cdr rest))) stx]      ; malformed: let Racket report it
+      [else
+       (define clauses (car rest))
+       (define bodies  (cdr rest))
+       (cond
+         ;; #:break / #:final among the body forms: they cannot be wrapped, so
+         ;; only transform the bodies (no per-iteration frame)
+         [(ormap (λ (b) (keyword? (syntax-e b))) bodies)
+          (datum->syntax stx
+                         (append (list hd) opts pre (list clauses)
+                                 (map (λ (b) (if (keyword? (syntax-e b)) b (t b))) bodies))
+                         stx)]
+         [else
+          (define-values (init body)
+            (counted-body (site-sym 'loop stx) #'(_name-frames) (map t bodies)))
+          (with-syntax ([hd hd] [(o ...) opts] [(p ...) pre] [cl clauses]
+                        [init init] [body body])
+            #'(let (init) (hd o ... p ... cl body)))])]))
+
   ;; transform : syntax set -> syntax   (Pass 2)
   (define (transform stx locals)
     (define (t s) (transform s locals))
     (define (t* ss) (map t (syntax->list ss)))
     (syntax-parse stx
-      #:literals (for/list for let let* letrec if cond begin and or when unless define
-                  rnd-choice rnd-real rnd-int)
+      #:literals (let let* letrec if cond case begin and or when unless define
+                  quote quasiquote rnd-choice rnd-real rnd-int)
       ;; T9 — rnd-* are self-naming leaves; do not recurse.
       [(rnd-choice . _) stx]
       [(rnd-real   . _) stx]
       [(rnd-int    . _) stx]
-      ;; T1 — for/list (any number of clauses)
-      [(for/list (clause ...) body ...)
-       (define ls (site-sym 'loop stx))
-       (with-syntax ([(i) (generate-temporaries '(__pto-loop-i__))]
-                     [(nb ...) (t* #'(body ...))])
-         #`(for/list ([i (in-naturals)] clause ...)
-             (parameterize ([_name-frames (cons (cons '#,ls i) (_name-frames))])
-               nb ...)))]
-      ;; T2 — for (void)
-      [(for (clause ...) body ...)
-       (define ls (site-sym 'loop stx))
-       (with-syntax ([(i) (generate-temporaries '(__pto-loop-i__))]
-                     [(nb ...) (t* #'(body ...))])
-         #`(for ([i (in-naturals)] clause ...)
-             (parameterize ([_name-frames (cons (cons '#,ls i) (_name-frames))])
-               nb ...)))]
+      ;; T12 — quoted data is data, not code
+      [(quote . _) stx]
+      [(quasiquote . _) stx]
+      ;; T1/T2 — for, for/list, for*/list, for/vector, for/sum, ... (any clauses)
+      [(hd:id . _)
+       #:when (one-of? #'hd plain-for-forms)
+       (transform-for stx t #f)]
+      ;; for/fold, for*/fold, for/lists, ... (accumulators before the clauses)
+      [(hd:id . _)
+       #:when (one-of? #'hd accum-for-forms)
+       (transform-for stx t #t)]
       ;; T3 — nested helper definition (no frame here; frames pushed at calls)
       [(define (fname:id fa ...) fb ...)
        #:when (set-member? locals (syntax-e #'fname))
        (with-syntax ([(nb ...) (t* #'(fb ...))])
          #`(define (fname fa ...) nb ...))]
+      ;; T5a — named let: each call of the loop is one iteration. Frames are
+      ;; reset to those at loop entry, so names do not grow with the depth of
+      ;; the recursion.
+      [(let name:id ([x e] ...) body ...+)
+       (with-syntax ([(ne ...) (t* #'(e ...))] [(base) (generate-temporaries '(base))])
+         (define-values (init counted)
+           (counted-body (site-sym (syntax-e #'name) stx) #'base (t* #'(body ...))))
+         (with-syntax ([init init] [counted counted])
+           #'(let (init [base (_name-frames)])
+               (let name ([x ne] ...) counted))))]
       ;; T5 — let / let* / letrec
       [(let ([x e] ...) body ...)
        (with-syntax ([(ne ...) (t* #'(e ...))] [(nb ...) (t* #'(body ...))])
@@ -334,6 +408,14 @@
       [(letrec ([x e] ...) body ...)
        (with-syntax ([(ne ...) (t* #'(e ...))] [(nb ...) (t* #'(body ...))])
          #`(letrec ([x ne] ...) nb ...))]
+      ;; T13 — lambda / λ: a function may be called many times (by map,
+      ;; for-each, build-list, or directly), so count its calls like a loop
+      [(lam:id formals body ...+)
+       #:when (one-of? #'lam lambda-forms)
+       (define-values (init counted)
+         (counted-body (site-sym 'lambda stx) #'(_name-frames) (t* #'(body ...))))
+       (with-syntax ([init init] [counted counted])
+         #'(let (init) (lam formals counted)))]
       ;; T6 — if
       [(if c then else) #`(if #,(t #'c) #,(t #'then) #,(t #'else))]
       [(if c then)      #`(if #,(t #'c) #,(t #'then))]
@@ -348,6 +430,14 @@
                             (with-syntax ([nt (t #'test)] [(ne ...) (t* #'(e ...))])
                               #'(nt ne ...))]))
                        (syntax->list #'(clause ...))))]
+      ;; T7b — case: transform the key and the clause bodies, not the datums
+      [(case key clause ...)
+       #`(case #,(t #'key)
+           #,@(map (λ (c)
+                     (syntax-parse c
+                       [(datums e ...)
+                        (with-syntax ([(ne ...) (t* #'(e ...))]) #'(datums ne ...))]))
+                   (syntax->list #'(clause ...))))]
       ;; T8 — begin
       [(begin e ...) (with-syntax ([(ne ...) (t* #'(e ...))]) #`(begin ne ...))]
       ;; T10 — and / or / when / unless
@@ -371,13 +461,14 @@
 
 (define-syntax (define-generator stx)
   (syntax-parse stx
-    [(_ (name args ...) body ...)
+    ;; `formals` as in `define`: optional ([x default]), keyword and rest arguments allowed
+    [(_ (name:id . formals) body ...)
      (define fn-site (site-sym (syntax-e #'name) #'name))
      (define locals  (collect-locals (syntax->list #'(body ...))))
      (with-syntax ([(nb ...) (map (λ (b) (transform b locals))
                                   (syntax->list #'(body ...)))]
                    [fns fn-site])
-       #`(define (name args ...)
+       #`(define (name . formals)
            (parameterize ([_name-frames (list (cons 'fns 0))])
              nb ...)))]))
 
@@ -395,9 +486,12 @@
 (define (mutate-point gen s)
   (define geno (sol-geno s))
   (define keys (hash-keys geno))
-  (define key (list-ref keys (random (length keys))))
-  (define new-e (entry-mutate (hash-ref geno key) (current-dist-mode)))
-  (play gen (hash-set geno key new-e)))
+  (cond
+    [(null? keys) (play gen geno)]                ; no random decisions to mutate
+    [else
+     (define key (list-ref keys (random (length keys))))
+     (define new-e (entry-mutate (hash-ref geno key) (current-dist-mode)))
+     (play gen (hash-set geno key new-e))]))
 
 (define (mutate-random gen _s) (play gen #hash()))
 
@@ -473,8 +567,11 @@
   (define wrapped-fit (λ (pheno) (apply fit pheno fit-args)))
   (parameterize ([current-naming    naming]
                  [current-dist-mode dist-mode])
-    ;; Pass the callback straight down to the solver
-    (solver wrapped-gen wrapped-fit better n #:on-iteration on-iter)))
+    ;; A solver has the signature (gen fit better n); #:on-iteration is passed
+    ;; only when a callback is given, so solvers need not accept it
+    (if on-iter
+        (solver wrapped-gen wrapped-fit better n #:on-iteration on-iter)
+        (solver wrapped-gen wrapped-fit better n))))
 
 ;; ===========================================================================
 ;; Tests (run with: raco test pto.rkt). These live inside the module so they
@@ -734,4 +831,107 @@
       (run sp-gen (λ (pheno) (apply + (map (λ (x) (* x x)) pheno)))
            #:better < #:naming 'linear #:dist-mode 'fine
            #:n-iterations 500 #:gen-args '(5)))
-    (check-true (< mf 1.0))))
+    (check-true (< mf 1.0)))
+
+  ;; ---------------- Regression tests: generator forms, solvers, edge cases ----------------
+
+  ;; n distinct structured names, and replay reproduces the phenotype
+  (define (check-structured gen n)
+    (parameterize ([current-naming 'structured])
+      (define s1 (play gen #hash()))
+      (define s2 (play gen (sol-geno s1)))
+      (check-equal? (length (sol-key-order s1)) n "number of trace entries")
+      (check-equal? (set-count (list->set (sol-key-order s1))) n "names must be distinct")
+      (check-equal? (sol-pheno s2) (sol-pheno s1) "replay reproduces phenotype")
+      s1))
+
+  (test-case "run accepts a solver with the spec signature (gen fit better n)"
+    (define (one-shot gen fit better n)
+      (define s (create-ind gen))
+      (values s (fit (sol-pheno s))))
+    (define-values (b f)
+      (run om-gen (λ (p) (apply + p)) #:solver one-shot #:gen-args '(5)))
+    (check-true (sol? b))
+    (check-equal? f (apply + (sol-pheno b))))
+
+  (test-case "run passes #:on-iteration to the solver when given"
+    (define calls 0)
+    (run om-gen (λ (p) (apply + p)) #:gen-args '(5) #:n-iterations 7
+         #:on-iteration (λ (i cand best) (set! calls (add1 calls))))
+    (check-equal? calls 7))
+
+  (test-case "for*/list: one name per body execution"
+    (define-generator (g)
+      (for*/list ([i (in-range 2)] [j (in-range 3)]) (rnd-choice '(0 1))))
+    (check-structured g 6))
+
+  (test-case "for/list with #:when followed by a nested clause"
+    (define-generator (g)
+      (for/list ([i (in-range 3)] #:when (odd? (add1 i)) [j (in-range 2)])
+        (rnd-choice '(0 1))))
+    (check-structured g 4))
+
+  (test-case "for/vector, for/sum, for/fold, for*/fold"
+    (define-generator (g)
+      (list (for/vector ([i (in-range 3)]) (rnd-int 0 9))
+            (for/sum ([i (in-range 2)]) (rnd-real 0.0 1.0))
+            (for/fold ([acc '()]) ([i (in-range 2)]) (cons (rnd-choice '(a b)) acc))
+            (for*/fold ([acc 0]) ([i (in-range 2)] [j (in-range 2)]) (+ acc (rnd-int 0 1)))))
+    (check-structured g 11))
+
+  (test-case "named let loop"
+    (define-generator (g)
+      (let loop ([k 0] [acc '()])
+        (if (= k 5) (reverse acc) (loop (add1 k) (cons (rnd-choice '(0 1)) acc)))))
+    (check-structured g 5))
+
+  (test-case "spec TSP generator: named let calling a nested helper"
+    (define cities '(A B C D E))
+    (define-generator (tsp)
+      (define (pick remaining)
+        (list-ref remaining (rnd-int 0 (sub1 (length remaining)))))
+      (let loop ([rem cities] [tour '()])
+        (if (null? rem)
+            (reverse tour)
+            (let ([city (pick rem)])
+              (loop (remove city rem) (cons city tour))))))
+    (define s1 (check-structured tsp 5))
+    (check-equal? (list->set (sol-pheno s1)) (list->set cities))
+    (parameterize ([current-naming 'structured])
+      (check-equal? (length (align-traces s1 (create-ind tsp))) 5)))
+
+  (test-case "lambdas called repeatedly: map, for-each, build-list, let-bound"
+    (define-generator (g)
+      (define out '())
+      (for-each (λ (x) (set! out (cons (rnd-int 0 x) out))) '(3 4 5))
+      (list (map (lambda (x) (+ x (rnd-real 0.0 1.0))) '(1 2 3 4))
+            (build-list 2 (λ (i) (rnd-choice '(a b))))
+            (let ([f (λ () (rnd-choice '(0 1)))]) (list (f) (f)))
+            out))
+    (check-structured g 11))
+
+  (test-case "quoted data and case datums are left alone"
+    (define-generator (g)
+      (define (flip) (rnd-choice '(0 1)))
+      (list (flip)
+            '(flip 1)
+            (case 'flip [(flip) 'matched] [else 'not-matched])))
+    (define s (check-structured g 1))
+    (check-equal? (second (sol-pheno s)) '(flip 1))
+    (check-equal? (third (sol-pheno s)) 'matched))
+
+  (test-case "define-generator accepts optional and rest arguments"
+    (define-generator (g [n 3] . more)
+      (for/list ([i (in-range (+ n (length more)))]) (rnd-choice '(0 1))))
+    (check-structured g 3)
+    (check-structured (λ () (g 2 'x 'y)) 4)
+    (void))
+
+  (test-case "mutate-point on an empty trace returns a solution"
+    (define (no-rnd) 42)
+    (define s (mutate-point no-rnd (create-ind no-rnd)))
+    (check-equal? (sol-pheno s) 42))
+
+  (test-case "rnd-choice of an empty list gives a clear error"
+    (check-exn #rx"rnd-choice: empty" (λ () (rnd-choice '())))
+    (check-exn #rx"rnd-int: lo > hi" (λ () (rnd-int 5 1)))))
