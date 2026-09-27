@@ -83,7 +83,7 @@ if __name__ == "__main__":
     n_outputs = n_inputs
     n_samples = n_inputs * 10
     X_train, y_train = make_training_data(n_samples, n_inputs)
-    (pheno, geno), fx = run(
+    (pheno, geno), fx, num_gen = run(
         generator,
         fitness,
         gen_args=(n_inputs, max_hidden, n_outputs),

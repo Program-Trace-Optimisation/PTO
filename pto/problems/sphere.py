@@ -30,7 +30,7 @@ def fitness(vector):
 
 
 if __name__ == "__main__":
-    (pheno, geno), fx = run(
+    (pheno, geno), fx, num_gen = run(
         generator,
         fitness,
         gen_args=(size,),

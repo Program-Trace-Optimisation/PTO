@@ -29,6 +29,6 @@ fitness = sum
 
 
 if __name__ == "__main__":
-    (pheno, geno), fx = run(generator, fitness, gen_args=(size,), better=better)
+    (pheno, geno), fx, num_gen = run(generator, fitness, gen_args=(size,), better=better)
     print(f"Solution {pheno}")
     print(f"Fitness {fx}")

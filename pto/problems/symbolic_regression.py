@@ -268,7 +268,7 @@ if __name__ == "__main__":
     n_samples = n_vars * 10  # training set size
     X_train, y_train, target = make_training_data(n_samples, n_vars, func_set, term_set, cnf_generator)
 
-    (pheno, geno), fx = run(
+    (pheno, geno), fx, num_gen = run(
         generator,
         fitness,
         gen_args=(func_set, term_set),

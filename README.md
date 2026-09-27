@@ -33,7 +33,7 @@ It's easy to use PTO by adding your own problem. You can use your existing objec
 1. `from pto import run, rnd`
 2. `def generator():` - use `rnd` to make random decisions inside generator
 3. `def fitness(solution):` - a typical fitness function
-4. `run(generator, fitness)` - this will run a solver and return a genotype, phenotype, and fitness value.
+4. `run(generator, fitness)` - this will run a solver and return the best solution (a `(phenotype, genotype)` pair), its fitness value, and the number of generations run.
 
 ## Minimal ONEMAX
 
@@ -42,7 +42,7 @@ Here's the ONEMAX problem on 10 variables in minimal PTO style:
 ```python
 from pto import run, rnd
 def generator(): return [rnd.choice([0, 1]) for i in range(10)]
-(pheno, geno), fx = run(generator, sum, better=max)
+(pheno, geno), fx, num_gen = run(generator, sum, better=max)
 ```
 
 ## The generator function
@@ -103,13 +103,15 @@ The default solver is a hill-climber, but we can chose any of the following by p
 * `genetic_algorithm`
 * `particle_swarm_optimisation`.
 
-`(pheno, geno), fx = run(generator, sum, better=max, Solver='genetic_algorithm')`
+`(pheno, geno), fx, num_gen = run(generator, sum, better=max, Solver='genetic_algorithm')`
 
 Note the uppercase `S` above. This reflects that the genetic algorithm in this case
 is a class, and inside `run()` an instance of it will be created.
 
-We can also pass in arguments to be passed to the `solver`, eg the number of iterations.
-We can ask for a history of best fitness values to be returned also.
+We can also pass in arguments to be passed to the `solver`, eg the number of iterations
+(`n_generation` for most solvers, `n_iteration` for `particle_swarm_optimisation`).
+We can ask for a history of best fitness values to be returned also; in that case
+the third return value is the history instead of the number of generations.
 
 `(pheno, geno), fx, history = run(generator, sum, better=max, 
                                   solver_args={'n_generation': 25, 'return_history': True})`

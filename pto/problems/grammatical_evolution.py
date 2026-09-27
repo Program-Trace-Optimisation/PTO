@@ -124,7 +124,7 @@ if __name__ == "__main__":
     n_samples = n_vars * 10
     grammar["<varidx>"] = [[str(i)] for i in range(n_vars)]
     X_train, y_train = make_training_data(n_samples, n_vars)
-    (pheno, geno), fx = run(
+    (pheno, geno), fx, num_gen = run(
         generator,
         fitness,
         gen_args=(grammar,),

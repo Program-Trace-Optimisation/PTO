@@ -24,11 +24,13 @@ def run(Gen, *args, seed=None, **kwargs):
       For PTO research use only, not for use by end-users.
     * dist_type: a string, can be
       * 'coarse' (trace elements use coarse distributions) or
-      * 'repair' (fine distributions with repair)
+      * 'fine' (fine distributions with repair)
       For PTO research use only, not for use by end-users.
 
-    Return: the best solution found and its fitness
-    sol, fx: sol is a tuple (genotype, phenotype) and fx is a float.
+    Return: the best solution found, its fitness, and the number of generations run
+    sol, fx, num_gen: sol is a tuple (phenotype, genotype) and fx is a float.
+    With solver_args={'return_history': True} the third value is the history instead.
+    With Solver='search_operators' an Op instance is returned instead.
 
 
     Here is the typical PTO workflow:
@@ -43,7 +45,7 @@ def run(Gen, *args, seed=None, **kwargs):
     ```python
     from pto import run, rnd
     def generator(): return [rnd.choice([0, 1]) for i in range(10)]
-    (pheno, geno), fx = run(generator, sum, better=max)
+    (pheno, geno), fx, num_gen = run(generator, sum, better=max)
     ```
 
     As we can see, the generator makes calls to `rnd` methods. `rnd`
