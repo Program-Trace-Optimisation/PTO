@@ -16,8 +16,8 @@
  *
  * Linear naming: When no explicit name is given, the tracer assigns sequential
  * integer keys (0, 1, 2, ...). This is the simplest scheme and works for any
- * generator. Structural naming (Slice 2) will inject explicit name strings
- * via AST transformation.
+ * generator. Structural naming (compiler.js) injects explicit name strings
+ * via AST transformation. A name may occur only once per play().
  *
  * The trace (genotype) fully determines the solution (phenotype) when replayed
  * through the same generator. This is what makes PTO's operators work: mutate
@@ -61,8 +61,15 @@ export class Tracer {
       name = this.counter++;
     }
 
+    // Each name may occur only once per play: a repeated name would overwrite
+    // the earlier entry, and replaying the trace would then not reproduce the
+    // solution. (Object.hasOwn, since eg 'constructor' in {} is true.)
+    if (Object.hasOwn(this.outputTrace, name)) {
+      throw new Error(`Name '${name}' in trace is not unique`);
+    }
+
     // Look up in input trace
-    if (name in this.inputTrace) {
+    if (Object.hasOwn(this.inputTrace, name)) {
       const traceDist = this.inputTrace[name];
       if (dist.matches(traceDist)) {
         // Same distribution parameters → reuse cached value

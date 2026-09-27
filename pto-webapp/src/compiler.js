@@ -24,11 +24,18 @@
  * Transformation rules:
  * ---------------------
  * 1. rnd.X(args)       → rnd.X(args, { name: <nameExpr> })
- * 2. for loops          → inject counter, prefix save/restore
- * 3. while loops        → inject counter, prefix save/restore
- * 4. Array comprehension patterns (map/from callbacks) → inject index tracking
- * 5. Nested functions   → thread __prefix__ parameter
- * 6. Top-level function → inject __prefix__ = "root/..." preamble
+ * 2. loops (for, for-in, for-of, while, do-while) → inject counter, prefix save/restore
+ * 3. callbacks of array iteration methods (xs.map(cb), Array.from(xs, cb),
+ *    forEach, filter, reduce, ...) → name segment from the callback's index
+ * 4. Nested functions   → thread __prefix__ parameter (also when passed by
+ *    name as such a callback, eg xs.map(helper))
+ * 5. Top-level function → inject __prefix__ = "root/..." preamble
+ *
+ * Statements inside if/else, switch, try/catch/finally and labelled
+ * statements are transformed too. Each executed rnd call must get a unique
+ * name; the tracer throws if a name repeats. Not supported: nested functions
+ * used as values other than such callbacks, and callbacks whose index
+ * parameter is a destructuring pattern.
  *
  * Uses Acorn for parsing and astring for code generation. Acorn provides
  * line/column location on every AST node when parsed with `locations: true`.
@@ -157,6 +164,37 @@ function saveVar(loc) {
 }
 
 // ---------------------------------------------------------------------------
+// Array iteration methods
+// ---------------------------------------------------------------------------
+
+/** Methods that call their first argument once per element, and the position of the index parameter. */
+const ITERATION_METHODS = {
+  map: 1, forEach: 1, flatMap: 1, filter: 1, some: 1, every: 1,
+  find: 1, findIndex: 1, findLast: 1, findLastIndex: 1,
+  reduce: 2, reduceRight: 2,
+};
+
+/**
+ * If node is a call like xs.map(cb) or Array.from(xs, cb), return
+ * { label, argIndex, indexPos }: the method name, which argument is the
+ * callback, and which callback parameter receives the element index.
+ */
+function iterationCallback(node) {
+  const callee = node.callee;
+  if (callee.type !== 'MemberExpression' || callee.computed || callee.property.type !== 'Identifier') {
+    return null;
+  }
+  const method = callee.property.name;
+  if (method === 'from' && callee.object.type === 'Identifier' && callee.object.name === 'Array') {
+    return { label: 'from', argIndex: 1, indexPos: 1 };
+  }
+  if (Object.hasOwn(ITERATION_METHODS, method)) {
+    return { label: method, argIndex: 0, indexPos: ITERATION_METHODS[method] };
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // AST Walker / Transformer
 // ---------------------------------------------------------------------------
 
@@ -195,20 +233,39 @@ class NameCompiler {
       }
     }
 
+    // An arrow function with an expression body, eg (rnd) => [rnd.random()],
+    // gets a block body so that the __prefix__ preamble can be added
+    if (funcNode.body.type !== 'BlockStatement') {
+      funcNode.body = {
+        type: 'BlockStatement',
+        body: [{ type: 'ReturnStatement', argument: funcNode.body }],
+      };
+      funcNode.expression = false;
+    }
+
     this.funcDepth = 1;
     this._collectNestedFuncs(funcNode);
     this._walkBody(funcNode);
 
     // Inject __prefix__ preamble at start of function body
-    const loc = funcNode.loc ? funcNode.loc.start : { line: 1, column: 0 };
+    const loc = this._pos(funcNode);
     const funcName = funcNode.id ? funcNode.id.name : 'generator';
     const preamble = this._makeVarDecl('__prefix__', literal(`root/${funcName}@${loc.line}.${loc.column}`));
 
-    if (funcNode.body.type === 'BlockStatement') {
-      funcNode.body.body = [preamble, ...funcNode.body.body];
-    }
+    funcNode.body.body = [preamble, ...funcNode.body.body];
 
     return funcNode;
+  }
+
+  /**
+   * Source position of a node as { line, column }. compileGenerator parses the
+   * generator wrapped in "(" ... ")", so Acorn's columns on the first line are
+   * one too large; correct for that.
+   */
+  _pos(node) {
+    if (!node.loc) return { line: 0, column: 0 };
+    const { line, column } = node.loc.start;
+    return { line, column: line === 1 ? column - 1 : column };
   }
 
   // -- Collect nested function names ----------------------------------------
@@ -257,12 +314,40 @@ class NameCompiler {
   _visitStatement(node) {
     switch (node.type) {
       case 'ForStatement':
-        return this._visitFor(node);
       case 'ForInStatement':
       case 'ForOfStatement':
-        return this._visitForOf(node);
+        return this._visitLoop(node, 'for');
       case 'WhileStatement':
-        return this._visitWhile(node);
+        return this._visitLoop(node, 'while');
+      case 'DoWhileStatement':
+        return this._visitLoop(node, 'do');
+      case 'LabeledStatement': {
+        const body = node.body;
+        const visited = this._visitStatement(body);
+        if (Array.isArray(visited)) {
+          // A labelled loop becomes [save, counter, loop, restore]: keep the
+          // label on the loop itself, so that `continue label` still works
+          node.body = body;
+          return visited.map(s => (s === body ? node : s));
+        }
+        node.body = visited;
+        return node;
+      }
+      case 'SwitchStatement':
+        node.discriminant = this._visitExpr(node.discriminant);
+        for (const switchCase of node.cases) {
+          if (switchCase.test) switchCase.test = this._visitExpr(switchCase.test);
+          switchCase.consequent = this._walkStatements(switchCase.consequent);
+        }
+        return node;
+      case 'TryStatement':
+        this._walkBlock(node.block);
+        if (node.handler) this._walkBlock(node.handler.body);
+        if (node.finalizer) this._walkBlock(node.finalizer);
+        return node;
+      case 'ThrowStatement':
+        node.argument = this._visitExpr(node.argument);
+        return node;
       case 'FunctionDeclaration':
         return this._visitFunctionDecl(node);
       case 'VariableDeclaration':
@@ -325,22 +410,37 @@ class NameCompiler {
     }
   }
 
-  // -- For loop (C-style: for (let i = 0; i < n; i++)) ----------------------
+  // -- Loops: for, for-in, for-of, while, do-while ---------------------------
 
-  _visitFor(node) {
-    const loc = node.loc ? node.loc.start : { line: 0, column: 0 };
+  /**
+   * Give each iteration of a loop its own name prefix:
+   *
+   *   let __ps__ = __prefix__; let __c__ = 0;
+   *   <loop> { __prefix__ = __ps__ + "/<label>@<line>.<col>:" + String(__c__); __c__++; ... }
+   *   __prefix__ = __ps__;
+   *
+   * The counter is incremented at the start of the body, so that `continue`
+   * cannot skip it.
+   */
+  _visitLoop(node, label) {
+    const loc = this._pos(node);
     const cv = counterVar(loc);
     const sv = saveVar(loc);
 
-    // Walk the body first
+    // Loop header. init and the iterated object (`right`) are evaluated once,
+    // before the loop. test and update are evaluated between iterations, when
+    // __prefix__ holds the latest iteration's prefix, so rnd calls there get
+    // a distinct name each time too.
+    for (const key of ['init', 'right', 'test', 'update']) {
+      if (!node[key]) continue;
+      node[key] = node[key].type === 'VariableDeclaration'
+        ? this._visitVarDecl(node[key])
+        : this._visitExpr(node[key]);
+    }
+
     this._walkBlock(node.body);
 
-    // Inject prefix update at start of loop body
-    const prefixUpdate = makePrefixUpdate(sv, 'for', loc, cv);
-
-    // Inject counter: either repurpose init or add separate counter
-    // We add a separate counter variable and increment at end of body
-    const counterInit = this._makeVarDecl(cv, literal(0));
+    const prefixUpdate = makePrefixUpdate(sv, label, loc, cv);
     const counterInc = {
       type: 'ExpressionStatement',
       expression: {
@@ -352,81 +452,15 @@ class NameCompiler {
     };
 
     if (node.body.type === 'BlockStatement') {
-      node.body.body = [prefixUpdate, ...node.body.body, counterInc];
+      node.body.body = [prefixUpdate, counterInc, ...node.body.body];
     } else {
       node.body = {
         type: 'BlockStatement',
-        body: [prefixUpdate, node.body, counterInc],
+        body: [prefixUpdate, counterInc, node.body],
       };
     }
 
-    return [makeSave(sv), counterInit, node, makeRestore(sv)];
-  }
-
-  // -- For-of / For-in loops ------------------------------------------------
-
-  _visitForOf(node) {
-    const loc = node.loc ? node.loc.start : { line: 0, column: 0 };
-    const cv = counterVar(loc);
-    const sv = saveVar(loc);
-
-    this._walkBlock(node.body);
-
-    const prefixUpdate = makePrefixUpdate(sv, 'for', loc, cv);
-    const counterInit = this._makeVarDecl(cv, literal(0));
-    const counterInc = {
-      type: 'ExpressionStatement',
-      expression: {
-        type: 'UpdateExpression',
-        operator: '++',
-        argument: ident(cv),
-        prefix: false,
-      },
-    };
-
-    if (node.body.type === 'BlockStatement') {
-      node.body.body = [prefixUpdate, ...node.body.body, counterInc];
-    } else {
-      node.body = {
-        type: 'BlockStatement',
-        body: [prefixUpdate, node.body, counterInc],
-      };
-    }
-
-    return [makeSave(sv), counterInit, node, makeRestore(sv)];
-  }
-
-  // -- While loop -----------------------------------------------------------
-
-  _visitWhile(node) {
-    const loc = node.loc ? node.loc.start : { line: 0, column: 0 };
-    const cv = counterVar(loc);
-    const sv = saveVar(loc);
-
-    this._walkBlock(node.body);
-
-    const prefixUpdate = makePrefixUpdate(sv, 'while', loc, cv);
-    const counterInit = this._makeVarDecl(cv, literal(0));
-    const counterInc = {
-      type: 'ExpressionStatement',
-      expression: {
-        type: 'UpdateExpression',
-        operator: '++',
-        argument: ident(cv),
-        prefix: false,
-      },
-    };
-
-    if (node.body.type === 'BlockStatement') {
-      node.body.body = [prefixUpdate, ...node.body.body, counterInc];
-    } else {
-      node.body = {
-        type: 'BlockStatement',
-        body: [prefixUpdate, node.body, counterInc],
-      };
-    }
-
-    return [makeSave(sv), counterInit, node, makeRestore(sv)];
+    return [makeSave(sv), this._makeVarDecl(cv, literal(0)), node, makeRestore(sv)];
   }
 
   // -- Function declarations (nested) ---------------------------------------
@@ -497,7 +531,12 @@ class NameCompiler {
         return node;
       case 'ObjectExpression':
         for (const prop of node.properties) {
-          prop.value = this._visitExpr(prop.value);
+          if (prop.type === 'SpreadElement') {
+            prop.argument = this._visitExpr(prop.argument);
+          } else {
+            if (prop.computed) prop.key = this._visitExpr(prop.key);
+            prop.value = this._visitExpr(prop.value);
+          }
         }
         return node;
       case 'BinaryExpression':
@@ -531,6 +570,9 @@ class NameCompiler {
         node.argument = this._visitExpr(node.argument);
         return node;
       default:
+        // Any other expression (new, await, optional chains, tagged templates,
+        // ...): visit its sub-expressions
+        this._walkGeneric(node);
         return node;
     }
   }
@@ -538,10 +580,17 @@ class NameCompiler {
   // -- Call expression visitor -----------------------------------------------
 
   _visitCall(node) {
-    // Visit arguments first
-    node.arguments = node.arguments.map(a => this._visitExpr(a));
+    const loc = this._pos(node);
 
-    const loc = node.loc ? node.loc.start : { line: 0, column: 0 };
+    // The callee may itself contain calls, eg rnd.sample(xs, 2).map(...)
+    node.callee = this._visitExpr(node.callee);
+
+    // Visit arguments; a callback of eg xs.map(cb) is named per element index
+    const iteration = iterationCallback(node);
+    node.arguments = node.arguments.map((a, i) =>
+      (iteration && i === iteration.argIndex)
+        ? this._visitIterationCallback(a, iteration, loc)
+        : this._visitExpr(a));
 
     // rnd.X(args) → rnd.X(args, { name: <nameExpr> })
     if (node.callee.type === 'MemberExpression' &&
@@ -577,6 +626,65 @@ class NameCompiler {
     }
 
     return node;
+  }
+
+  // -- Callbacks of array iteration methods (map, forEach, Array.from, ...) ----
+
+  /**
+   * A callback called once per element, eg in xs.map(cb), plays the role of a
+   * loop body: its rnd calls get a name segment "/map@<line>.<col>:<index>",
+   * using the index the method passes to the callback.
+   */
+  _visitIterationCallback(cb, { label, indexPos }, loc) {
+    const indexName = `__i_L${loc.line}_${loc.column}__`;
+    const pad = (k) => ident(`__a${k}_L${loc.line}_${loc.column}__`);
+
+    // Nested function passed by name, eg xs.map(bit): wrap it in an arrow
+    // function that passes __prefix__, like a direct call bit() would
+    if (cb.type === 'Identifier' && this.nestedFuncNames.has(cb.name)) {
+      const params = [];
+      for (let k = 0; k < indexPos; k++) params.push(pad(k));
+      params.push(ident(indexName));
+      this.compSegments.push([label, loc.line, loc.column, indexName]);
+      const prefix = makeNameExpr(cb.name, loc, this.compSegments);
+      this.compSegments.pop();
+      const rest = `__rest_L${loc.line}_${loc.column}__`;
+      return {
+        type: 'ArrowFunctionExpression',
+        id: null,
+        params: [...params, { type: 'RestElement', argument: ident(rest) }],
+        body: callExpr(ident(cb.name), [
+          prefix,
+          ...params.map(p => ident(p.name)),
+          { type: 'SpreadElement', argument: ident(rest) },
+        ]),
+        expression: true,
+        async: false,
+        generator: false,
+      };
+    }
+
+    if (cb.type !== 'ArrowFunctionExpression' && cb.type !== 'FunctionExpression') {
+      return this._visitExpr(cb);
+    }
+
+    // Inline callback: use its index parameter, adding one if it has none
+    const params = cb.params;
+    let indexVar;
+    if (params.length > indexPos) {
+      if (params[indexPos].type !== 'Identifier') return this._visitExpr(cb); // eg a pattern: unsupported
+      indexVar = params[indexPos].name;
+    } else {
+      if (params.some(p => p.type !== 'Identifier')) return this._visitExpr(cb); // eg a rest parameter
+      while (params.length < indexPos) params.push(pad(params.length));
+      params.push(ident(indexName));
+      indexVar = indexName;
+    }
+
+    this.compSegments.push([label, loc.line, loc.column, indexVar]);
+    const visited = this._visitArrowOrFuncExpr(cb);
+    this.compSegments.pop();
+    return visited;
   }
 
   // -- Arrow/function expression (inline callbacks for map etc.) --------------
