@@ -34,7 +34,7 @@ class Op:
         fitness=None,
         mutation="mutate_point_ind",
         crossover="crossover_uniform_ind",
-        tracer=tracer,
+        tracer=None,
     ):
         """
         Initialize operator with problem-specific functions and selected variation operators.
@@ -44,8 +44,11 @@ class Op:
             fitness: Function that evaluates solution quality
             mutation: Name of mutation operator to use
             crossover: Name of crossover operator to use
-            tracer: Tracer instance for recording operations
+            tracer: Tracer instance for recording operations (default: the
+                class-level Op.tracer, which the run() layers configure)
         """
+        if tracer is not None:
+            self.tracer = tracer
         self.generator = generator
         self.fitness = fitness
         self.mutate_ind = getattr(self, mutation)
@@ -63,7 +66,7 @@ class Op:
 
     def create_ind(self):
         """Create new individual by running generator with empty trace."""
-        pheno, geno = Op.tracer.play(self.generator, {})
+        pheno, geno = self.tracer.play(self.generator, {})
         return Sol(pheno, geno)
 
     def fix_ind(self, geno):
@@ -76,7 +79,7 @@ class Op:
         Returns:
             Sol: Valid solution with repaired genotype and corresponding phenotype
         """
-        pheno, repaired_geno = Op.tracer.play(self.generator, geno)
+        pheno, repaired_geno = self.tracer.play(self.generator, geno)
         return Sol(pheno, repaired_geno)
 
     @check_immutable

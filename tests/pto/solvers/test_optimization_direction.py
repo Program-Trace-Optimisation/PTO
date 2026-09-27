@@ -43,7 +43,7 @@ def fitness(sol):
 
 def run_solver(SolverClass, better, seed=42, **solver_kwargs):
     random.seed(seed)
-    op = Op(generator=onemax5, fitness=fitness)
+    op = Op(generator=onemax5, fitness=fitness, tracer=tracer)
     result = SolverClass(op, better=better, **solver_kwargs)()
     sol, fx = result[0], result[1]
     return sol.pheno, fx
