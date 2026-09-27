@@ -79,11 +79,12 @@ class Tracer:
         self.input_trace = trace
         self.output_trace = {}
 
-        solution = gen()
+        try:
+            solution = gen()
+        finally:
+            self.active = False  # also if gen raises, so later untraced calls stay untraced
 
-        result_trace = self.output_trace
-        self.active = False
-        return solution, result_trace
+        return solution, self.output_trace
 
 
 tracer = Tracer()

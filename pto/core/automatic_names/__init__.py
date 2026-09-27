@@ -17,7 +17,6 @@ __all__ = [
     "Loop_name",
     "AutoNamedRandomTraceable",
     "rnd",
-    "NameRunner",
     "_run",
     "transform_ast",
     "ast_transformers",
