@@ -32,12 +32,16 @@
 (define cities '(A B C D E F G))
 
 ;; Generate an immutable, shared random cost matrix between cities
+;; It is a fixed problem instance: drawn from its own seeded generator, so every
+;; run optimises the same matrix, without affecting the optimiser's randomness
 (define dist-matrix
-  (let ([d (make-hash)])
-    (for* ([a cities] [b cities])
-      (unless (eq? a b)
-        (hash-set! d (list a b) (+ 1 (random 9)))))
-    d))
+  (parameterize ([current-pseudo-random-generator (make-pseudo-random-generator)])
+    (random-seed 2026)
+    (let ([d (make-hash)])
+      (for* ([a cities] [b cities])
+        (unless (eq? a b)
+          (hash-set! d (list a b) (+ 1 (random 9)))))
+      d)))
 
 ;; Evaluates total trip length, looping back to the starting city at the end
 (define (tour-cost tour)
@@ -124,7 +128,8 @@
              (λ (sol) (format "Discovered Formula Tree: ~a" (sol-pheno sol))))]
     [else (error 'workbench "Unknown selection assignment: ~a" PROBLEM-TO-RUN)]))
 
-;; Mutable repository holding our coordinate vectors: #(iteration best-fitness)
+;; Mutable repository holding our coordinate vectors: #(iteration best-fitness),
+;; newest first (consing is O(1); the plot reverses it)
 (define evolution-history '())
 
 ;; Construct standard window frame
@@ -143,7 +148,7 @@
           (define-values (width height) (send canvas get-client-size))
           (unless (null? evolution-history)
             ;; plot/dc handles Y-axis range scaling automatically when boundaries are omitted
-            (plot/dc (lines evolution-history #:color "darkgreen" #:width 2.5 #:label "Fitness Over Time")
+            (plot/dc (lines (reverse evolution-history) #:color "darkgreen" #:width 2.5 #:label "Fitness Over Time")
                      dc 0 0 width height
                      #:x-label "Generation Iterations"
                      #:y-label "Current Peak Fitness"
@@ -152,7 +157,7 @@
 
 ;; Framework engine callback hook fired on every loop alteration step
 (define (iteration-tracker iter cand-fit best-fit)
-  (set! evolution-history (append evolution-history (list (vector iter best-fit))))
+  (set! evolution-history (cons (vector iter best-fit) evolution-history))
   
   ;; Redraw the canvas graph surface every 5 steps to keep memory footprints lean
   (when (zero? (modulo iter 5))
@@ -161,23 +166,29 @@
 ;; Render GUI display window
 (send display-frame show #t)
 
-;; Kick off core system calculation pipeline
-(printf "Executing system profile: [ ~a ]...\n" PROBLEM-TO-RUN)
-(define-values (best-individual final-score)
-  (run target-gen target-fit
-       #:better >
-       #:naming 'structured
-       #:dist-mode 'coarse
-       #:n-iterations total-iters
-       #:gen-args gen-args
-       #:on-iteration iteration-tracker))
+;; Kick off core system calculation pipeline. The optimisation runs in its own
+;; thread, so that the GUI thread stays free to redraw the plot during the run
+;; (the program keeps running while the window is open).
+(void
+ (thread
+  (λ ()
+   (printf "Executing system profile: [ ~a ]...\n" PROBLEM-TO-RUN)
+   (define-values (best-individual final-score)
+     (run target-gen target-fit
+          #:better >
+          #:naming 'structured
+          #:dist-mode 'coarse
+          #:n-iterations total-iters
+          #:gen-args gen-args
+          #:on-iteration iteration-tracker))
 
-;; Print operational log analytics to the console window
-(printf "\n================ PROGRESSION COMPLETE ================\n")
-(printf "Target Objective:   ~a\n" chart-title)
-(printf "Final Score Target: ~a\n" final-score)
-(printf "Decoded Phenotype:  ~a\n" (result-formatter best-individual))
-(printf "------------------------------------------------------\n")
-(printf "Execution Snapshot Samples (Trace Address -> Gene value):\n")
-(for ([key (take (sol-key-order best-individual) (min 3 (length (sol-key-order best-individual))))])
-  (printf "  ~a -> ~a\n" key (entry-val (hash-ref (sol-geno best-individual) key))))
+   ;; Print operational log analytics to the console window
+   (printf "\n================ PROGRESSION COMPLETE ================\n")
+   (printf "Target Objective:   ~a\n" chart-title)
+   (printf "Final Score Target: ~a\n" final-score)
+   (printf "Decoded Phenotype:  ~a\n" (result-formatter best-individual))
+   (printf "------------------------------------------------------\n")
+   (printf "Execution Snapshot Samples (Trace Address -> Gene value):\n")
+   (for ([key (take (sol-key-order best-individual) (min 3 (length (sol-key-order best-individual))))])
+     (printf "  ~a -> ~a\n" key (entry-val (hash-ref (sol-geno best-individual) key))))
+   (queue-callback (λ () (send plot-canvas refresh))))))
