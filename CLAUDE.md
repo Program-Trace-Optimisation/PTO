@@ -37,7 +37,8 @@ def generator(n):
   the third is the fitness history. `Solver="search_operators"` returns the `Op` object instead.
 - Solver parameters (`n_generation`, `mutation`, `crossover`, `population_size`, ...) go in
   `solver_args`, never as keyword arguments of `run()`.
-- Other `run()` arguments: `fit_args`, `callback` (receives `(sol, fx, gen)`; returning true stops),
+- Other `run()` arguments: `fit_args`, `callback` (receives `(sol, fx, gen)` from hill_climber /
+  random_search, `(population, fitnesses, gen)` from population solvers; returning true stops),
   `seed`, and research-only `name_type` (`"str"` default / `"lin"`) and `dist_type` (`"fine"` default / `"coarse"`).
 - `Solver` is a name from `pto/solvers/` or a class. A solver is created as
   `Solver(op, better=..., callback=..., **solver_args)` and called with no arguments; it uses

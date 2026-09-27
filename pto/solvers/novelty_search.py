@@ -64,10 +64,15 @@ class novelty_search:
         # Set up search operators
         self.op.mutate_ind = getattr(op, self.mutation)
         self.op.crossover_ind = getattr(op, self.crossover)
-        if not hasattr(self.op, "behavior_distance_ind"):
-            self.op.behavior_distance_ind = lambda ind1, ind2: behavior_distance(
-                ind1.pheno, ind2.pheno
-            )
+        # Use op's own behavior_distance_ind if it defines one; otherwise (or if
+        # the one there was set by an earlier novelty_search on the same op)
+        # use this behavior_distance, on phenotypes
+        existing = getattr(self.op, "behavior_distance_ind", None)
+        if existing is None or getattr(existing, "_from_novelty_search", False):
+            def behavior_distance_ind(ind1, ind2):
+                return behavior_distance(ind1.pheno, ind2.pheno)
+            behavior_distance_ind._from_novelty_search = True
+            self.op.behavior_distance_ind = behavior_distance_ind
 
     def __call__(self):
         population = self.create_pop()

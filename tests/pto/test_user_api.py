@@ -119,6 +119,69 @@ class TestReadmeExamples(unittest.TestCase):
         self.assertEqual(op.evaluate_ind(sol), sum(sol.pheno))
 
 
+def hamming(a, b):
+    return sum(x != y for x, y in zip(a, b))
+
+
+class TestOtherSolvers(unittest.TestCase):
+
+    def setUp(self):
+        random.seed(0)
+
+    def test_population_solver_callback_state(self):
+        states = []
+        run(generator, sum, better=max, Solver="genetic_algorithm", callback=states.append,
+            solver_args={"n_generation": 2, "population_size": 6})
+        population, fitnesses, gen = states[-1]
+        self.assertEqual(len(population), 6)
+        self.assertEqual(fitnesses, [sum(s.pheno) for s in population])
+
+    def test_novelty_search(self):
+        (pheno, geno), fx, num_gen = run(
+            generator, sum, better=max, Solver="novelty_search",
+            solver_args={"behavior_distance": hamming, "n_generation": 3,
+                         "population_size": 8})
+        self.assertEqual(fx, sum(pheno))
+
+    def test_novelty_search_uses_its_own_behavior_distance(self):
+        from pto.solvers.novelty_search import novelty_search
+        op = run(generator, sum, better=max, Solver="search_operators")
+        novelty_search(op, behavior_distance=hamming, n_generation=1, population_size=4)()
+        calls = []
+        def counting(a, b):
+            calls.append(1)
+            return hamming(a, b)
+        novelty_search(op, behavior_distance=counting, n_generation=1, population_size=4)()
+        self.assertTrue(calls, "second run must use its own behavior_distance")
+
+
+class TestLandscapeAnalysis(unittest.TestCase):
+
+    def setUp(self):
+        random.seed(0)
+
+    def test_correlogram_walks(self):
+        try:
+            import numpy, matplotlib  # noqa: F401
+        except ImportError:
+            self.skipTest("numpy/matplotlib not installed")
+        from pto.solvers import correlogram_walks
+        op = run(generator, sum, better=max, Solver="search_operators")
+        x_axis, y_axis = correlogram_walks(op, n_walks=5, walk_length=5, n_bins=5)()
+        self.assertEqual(len(x_axis), len(y_axis))
+        self.assertTrue(len(x_axis) > 0)
+
+    def test_correlogram(self):
+        try:
+            import numpy, scipy, skgstat  # noqa: F401
+        except ImportError:
+            self.skipTest("numpy/scipy/scikit-gstat not installed")
+        from pto.solvers import correlogram
+        op = run(generator, sum, better=max, Solver="search_operators")
+        result = correlogram(op, n_walks=5, walk_len=10)()
+        self.assertTrue(len(result) > 0)
+
+
 class TestSolverImport(unittest.TestCase):
 
     def test_unknown_solver(self):
@@ -131,6 +194,18 @@ class TestSolverImport(unittest.TestCase):
         with mock.patch.dict(sys.modules, {"skgstat": None}):
             sys.modules.pop("pto.solvers.correlogram", None)
             run(generator, sum, solver_args={"n_generation": 3})
+
+    def test_lazy_solver_is_the_class_on_every_access(self):
+        try:
+            import numpy, matplotlib  # noqa: F401
+        except ImportError:
+            self.skipTest("numpy/matplotlib not installed")
+        from pto.solvers.correlogram_walks import correlogram_walks as direct
+        import pto.solvers
+        for _ in range(2):
+            from pto.solvers import correlogram_walks
+            self.assertIs(correlogram_walks, direct)
+            self.assertIs(pto.solvers.correlogram_walks, direct)
 
     def test_missing_dependency_is_reported(self):
         with mock.patch.dict(sys.modules, {"skgstat": None}):

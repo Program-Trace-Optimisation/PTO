@@ -134,7 +134,8 @@ The default solver is a hill-climber, but we can chose any of the following by p
 * `random_search`
 * `hill_climber`
 * `genetic_algorithm`
-* `particle_swarm_optimisation`.
+* `particle_swarm_optimisation`
+* `novelty_search` (see [Novelty search](#novelty-search)).
 
 `(pheno, geno), fx, num_gen = run(generator, sum, better=max, Solver='genetic_algorithm')`
 
@@ -153,12 +154,51 @@ We can also pass a callback to be called by the solver, eg:
 
 `run(generator, fitness, callback=lambda x: print(f"Hello from Solver callback! {x}"))`
 
-The callback receives the search state `(sol, fx, generation)`; if it returns a true value,
-the solver stops early.
+The callback receives the search state: `(sol, fx, generation)` for `hill_climber` and
+`random_search`, and `(population, fitnesses, generation)` for the population-based solvers
+(`genetic_algorithm`, `particle_swarm_optimisation`, `novelty_search`). If it returns a true
+value, the solver stops early.
 
 For reproducible runs, pass a seed: `run(generator, fitness, seed=42)`.
 
 Several more examples are available in [pto/problems/*.py](pto/problems/).
+
+## Novelty search
+
+`novelty_search` rewards solutions whose *behaviour* differs from what has been seen before
+(novelty), combined with competition on fitness among similar solutions. You define behaviour
+by giving a distance between two phenotypes, `behavior_distance`:
+
+```python
+def hamming(a, b): return sum(x != y for x, y in zip(a, b))
+
+(pheno, geno), fx, num_gen = run(generator, sum, better=max, Solver='novelty_search',
+                                 solver_args={'behavior_distance': hamming,
+                                              'n_generation': 20, 'population_size': 20})
+```
+
+It returns the fittest solution found. Other parameters (`archive_size`, `k_nearest`,
+`selection_pressure`, ...) are described in
+[pto/solvers/novelty_search.py](pto/solvers/novelty_search.py).
+
+## Landscape analysis
+
+PTO can also analyse a problem's fitness landscape, as seen through its search operators.
+`correlogram_walks` performs random walks by repeated mutation and measures how fitness
+correlation decreases with distance between solutions (it needs `pip install -e ".[landscape]"`):
+
+```python
+from pto.solvers import correlogram_walks
+
+op = run(generator, sum, better=max, Solver='search_operators')
+analyzer = correlogram_walks(op, n_walks=40, walk_length=15)
+x_axis, y_axis = analyzer()     # distance bins, and the fitness correlation in each bin
+analyzer.plot()
+```
+
+`correlogram` is a more complete version used in our research (it also needs `scikit-gstat`,
+included in the `landscape` extra): see [pto/solvers/correlogram.py](pto/solvers/correlogram.py)
+and [scripts/landscape_correlogram/](scripts/landscape_correlogram/) for examples.
 
 ## Writing your own solver
 
