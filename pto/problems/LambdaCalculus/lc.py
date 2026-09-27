@@ -1,6 +1,6 @@
 import sys
 
-from lc_functions import *
+from .lc_functions import *
 
 from itertools import count
 

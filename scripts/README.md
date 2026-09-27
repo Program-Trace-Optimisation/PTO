@@ -35,8 +35,9 @@ scripts/<project>/
 
 ## Project-specific notes
 
-- **lambda_calculus_gptp:** the problem code (`lc.py`, `lc_pto.py`) lives in
-  `pto/problems/LambdaCalculus/`; `lc_experiments.py` adds that folder to `sys.path`.
+- **lambda_calculus_gptp:** the problem code (`lc.py`, `lc_pto.py`) is the package
+  `pto.problems.LambdaCalculus`, which `lc_experiments.py` imports. Its own tests run with
+  `python -m pto.problems.LambdaCalculus.lc_tests`.
   `python lc_experiments.py` runs `run_experiment()`; other entry points are commented
   out in its `__main__` block.
 - **landscape_correlogram:** most of the data the notebook reads (`Landscape_*` folders,

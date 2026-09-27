@@ -1,7 +1,7 @@
-from lc import *
-from lc_functions import *
-from lc_pto import *
-import lc, lc_pto
+from .lc import *
+from .lc_functions import *
+from .lc_pto import *
+from . import lc, lc_pto
 
 def test(x):
     if isinstance(x, str):

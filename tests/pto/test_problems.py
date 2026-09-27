@@ -55,5 +55,24 @@ class TestProblemsAsClasses(unittest.TestCase):
                 self.assertEqual(fx, prob.fitness(pheno, *prob.fit_args))
 
 
+class TestLambdaCalculus(unittest.TestCase):
+    """pto.problems.LambdaCalculus is a package; its fitness must also work
+    where signal.SIGALRM does not exist (Windows)."""
+
+    def test_generator_and_fitness(self):
+        from pto.problems.LambdaCalculus import lc_pto
+        random.seed(0)
+        (pheno, geno), fx, _ = run(
+            lc_pto.tuple_generator,
+            lambda e: lc_pto.unary_fitness(e, lc_pto.SUCC_TRAINING_CASES),
+            better=min,
+            solver_args={"n_generation": 5},
+        )
+        self.assertTrue(0 <= fx <= 1)
+        # generic_fitness used signal.SIGALRM unconditionally
+        g = lc_pto.generic_fitness(pheno, lc_pto.SUCC_TRAINING_CASES, lc_pto.apply_unary)
+        self.assertTrue(0 <= g <= 1)
+
+
 if __name__ == "__main__":
     unittest.main()

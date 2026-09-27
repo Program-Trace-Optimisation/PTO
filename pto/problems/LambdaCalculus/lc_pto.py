@@ -7,10 +7,12 @@ Lambda Calculus Representation with Program Trace Optimization
 
 from itertools import count
 from statistics import mean
+import signal
+import threading
 from pto import rnd as random
 
 
-from lc import *
+from .lc import *
 
 
 # Add this global counter at the top of the file
@@ -464,9 +466,13 @@ def all_fitness(expr, metric=shd):
 
 def generic_fitness(expr, fitcases, apply, metric=shd, timeout_seconds=1):
 
-    # Set up a timeout to stop long-running evaluations
-    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(timeout_seconds) 
+    # Set up a timeout to stop long-running evaluations. signal.alarm exists
+    # only on Unix, and works only in the main thread; elsewhere (eg Windows)
+    # we rely on the recursion limit in safe_apply to stop runaway evaluations.
+    use_alarm = hasattr(signal, "SIGALRM") and threading.current_thread() is threading.main_thread()
+    if use_alarm:
+        old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(timeout_seconds)
 
     try:
         result = mean(metric(apply(expr, a), b) for a, b in fitcases)
@@ -476,6 +482,7 @@ def generic_fitness(expr, fitcases, apply, metric=shd, timeout_seconds=1):
         result = 1  # Treat timeout as invalid program
     finally:
         # Always clean up the alarm
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old_handler)
+        if use_alarm:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
     return result

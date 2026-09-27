@@ -6,16 +6,11 @@ import os
 from random import seed as stdlib_seed
 import sys
 
-# lc and lc_pto live in pto/problems/LambdaCalculus (not an importable package)
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                '..', '..', 'pto', 'problems', 'LambdaCalculus'))
-
-from lc import *
-import lc
-import lc_pto
-from lc_pto import tuple_generator, debruijn_generator, probability, generic_fitness, unary_fitness, binop_fitness, list_fitness, fold_fitness, all_fitness, truth_tables
-from lc_pto import SUCC_TRAINING_CASES, PLUS_TRAINING_CASES, IS_ZERO_TRAINING_CASES, FOLD_TRAINING_CASES, SUCC_TEST_CASES, PLUS_TEST_CASES, IS_ZERO_TEST_CASES
-from lc_pto import apply_unary, apply_binop, apply_trinop
+from pto.problems.LambdaCalculus.lc import *
+from pto.problems.LambdaCalculus import lc, lc_pto
+from pto.problems.LambdaCalculus.lc_pto import tuple_generator, debruijn_generator, probability, generic_fitness, unary_fitness, binop_fitness, list_fitness, fold_fitness, all_fitness, truth_tables
+from pto.problems.LambdaCalculus.lc_pto import SUCC_TRAINING_CASES, PLUS_TRAINING_CASES, IS_ZERO_TRAINING_CASES, FOLD_TRAINING_CASES, SUCC_TEST_CASES, PLUS_TEST_CASES, IS_ZERO_TEST_CASES
+from pto.problems.LambdaCalculus.lc_pto import apply_unary, apply_binop, apply_trinop
 
 from pto import run
 
