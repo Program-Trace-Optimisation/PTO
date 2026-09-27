@@ -14,11 +14,27 @@ To use PTO with a simple GUI in a Google Colab notebook, please click here:
 
 # Installation
 
-`$ pip install git+https://git@github.com/Program-Trace-Optimisation/PTO.git`
+PTO requires Python 3.10 or later. The core library has no dependencies outside the standard library.
 
-Alternatively, after downloading the code (eg using `git clone`):
+`$ pip install git+https://github.com/Program-Trace-Optimisation/PTO.git`
 
-`$ pip install -e .`
+To work on PTO itself, or to run the examples and tests, clone the repository and install it in
+editable mode, so that changes to the code take effect without reinstalling:
+
+```
+$ git clone https://github.com/Program-Trace-Optimisation/PTO.git
+$ cd PTO
+$ pip install -e ".[all]"
+```
+
+The optional extras are `examples` (numpy, for some example problems), `landscape` (correlogram
+landscape analysis), `gui` (Jupyter GUI and trace trees; trace trees also need the
+[Graphviz](https://graphviz.org/download/) binaries), `all` (all of these) and `dev` (all, plus coverage).
+Use `pip install -e .` for the core only.
+
+If you previously installed PTO without `-e` (eg with `pip install git+...`), run the editable install
+above: it replaces the old copy. Until you do, Python outside the clone's folder keeps importing
+the old installed version, not your clone. Check with `python -c "import pto; print(pto.__file__)"`.
 
 We will create a project on PyPI soon.
 
