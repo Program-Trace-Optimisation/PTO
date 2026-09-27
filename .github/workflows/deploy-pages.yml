@@ -1,31 +1,57 @@
-name: Deploy PTO Playground to GitHub Pages
+name: PTO Playground (web app)
 
 on:
   push:
     branches: [main]
-    paths: [pto-webapp/ui/**]
+    paths: [pto-webapp/**, .github/workflows/deploy-pages.yml]
+  pull_request:
+    paths: [pto-webapp/**, .github/workflows/deploy-pages.yml]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pto-webapp
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: pto-webapp/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Check the committed bundle is up to date
+        run: |
+          git diff --exit-code -- ui/pto-bundle.js || {
+            echo "::error::ui/pto-bundle.js is out of date: run 'npm run build' in pto-webapp and commit it"
+            exit 1
+          }
       - uses: actions/upload-pages-artifact@v3
         with:
           path: pto-webapp/ui
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v4
       - id: deployment
         uses: actions/deploy-pages@v4

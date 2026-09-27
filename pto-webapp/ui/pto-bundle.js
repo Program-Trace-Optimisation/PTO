@@ -7941,7 +7941,7 @@ var PTO = (() => {
     populationSize = 50,
     nGeneration = 100,
     truncationRate = 0.5,
-    mutationRate = 0.05,
+    mutationRate = 1,
     mutation = "mutatePositionWiseInd",
     crossover = "crossoverUniformInd",
     better = Math.max,

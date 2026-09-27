@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "description": "PTO (Program Trace Optimisation) playground — JS implementation",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "test": "node --test tests/",
+    "test": "node --test tests/*.test.js",
     "build": "esbuild src/browser.js --bundle --format=iife --global-name=PTO --outfile=ui/pto-bundle.js"
   },
   "dependencies": {
