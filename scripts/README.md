@@ -1,8 +1,8 @@
 # Research scripts
 
 Experiment drivers, analysis notebooks and results for research projects that use PTO.
-These are not part of the installable `pto` package; they use it like any other library
-(`pip install -e .` from the repo root first).
+These are not part of the installable `pto` package; they use it like any other library.
+Install PTO with the packages they need from the repo root first: `pip install -e ".[research]"`.
 
 ## Projects
 

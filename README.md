@@ -29,7 +29,9 @@ $ pip install -e ".[all]"
 
 The optional extras are `examples` (numpy, for some example problems), `landscape` (correlogram
 landscape analysis), `gui` (Jupyter GUI and trace trees; trace trees also need the
-[Graphviz](https://graphviz.org/download/) binaries), `all` (all of these) and `dev` (all, plus coverage).
+[Graphviz](https://graphviz.org/download/) binaries), `all` (all of these), `research` (all, plus
+pandas, seaborn and statsmodels for the experiment scripts in `scripts/`) and `dev` (all, plus the
+tools to run the tests and notebooks). `pip install -r requirements.txt` is the same as `.[all]`.
 Use `pip install -e .` for the core only.
 
 If you previously installed PTO without `-e` (eg with `pip install git+...`), run the editable install

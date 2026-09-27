@@ -24,6 +24,8 @@ landscape = ["numpy", "scipy", "matplotlib", "scikit-gstat"]
 # Jupyter GUI and trace-tree visualisation (trace trees also need the Graphviz binaries)
 gui = ["ipywidgets", "ipython", "matplotlib", "graphviz"]
 all = ["PTO[examples,landscape,gui]"]
+# experiment scripts and analysis notebooks in scripts/
+research = ["PTO[all]", "pandas", "seaborn", "statsmodels"]
 dev = ["PTO[all]", "coverage", "nbconvert", "ipykernel"]
 
 [project.urls]
