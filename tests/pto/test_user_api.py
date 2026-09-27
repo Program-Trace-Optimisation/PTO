@@ -45,16 +45,22 @@ class TestReadmeExamples(unittest.TestCase):
         self.assertEqual(fx, sum(pheno) + 100)
 
     def test_each_solver_returns_three_values(self):
-        for solver, budget in [("random_search", "n_generation"),
-                               ("hill_climber", "n_generation"),
-                               ("genetic_algorithm", "n_generation"),
-                               ("particle_swarm_optimisation", "n_iteration")]:
+        for solver in ["random_search", "hill_climber", "genetic_algorithm",
+                       "particle_swarm_optimisation"]:
             with self.subTest(solver=solver):
                 result = run(generator, sum, better=max, Solver=solver,
-                             solver_args={budget: 3})
+                             solver_args={"n_generation": 3})
                 self.assertEqual(len(result), 3)
                 (pheno, geno), fx, _ = result
                 self.assertEqual(fx, sum(pheno))
+
+    def test_pso_budget_names(self):
+        for budget in ["n_generation", "n_iteration"]:
+            with self.subTest(budget=budget):
+                *_, history = run(generator, sum, better=max,
+                                  Solver="particle_swarm_optimisation",
+                                  solver_args={budget: 4, "return_history": True})
+                self.assertEqual(len(history), 4 + 1)  # initial swarm + 4 iterations
 
     def test_return_history(self):
         (pheno, geno), fx, history = run(

@@ -85,7 +85,7 @@ Operators are chosen by name through `solver_args`, and are used by the solvers 
   * Random mutation, which generates a completely new individual: `run(..., solver_args={'mutation': 'mutate_random_ind'})`
 * Crossover operators (used by `genetic_algorithm`):
   * Uniform crossover, which takes each value uniformly from one parent or the other: `run(..., Solver='genetic_algorithm', solver_args={'crossover': 'crossover_uniform_ind'})`
-  * One-point crossover, `crossover_one_point_ind`, which is well-defined only for base PTO, and so should not be used.
+  * One-point crossover, which takes the aligned trace entries up to a random point from one parent and the rest from the other: `crossover_one_point_ind` (the default). The notion of a "point" is most natural for base PTO's linear traces; with structured names, uniform crossover is an alternative worth trying.
   * Convex crossover (`convex_crossover_ind`) works in the same way as uniform crossover but on three parents. It is used internally by `particle_swarm_optimisation` and cannot be selected for the GA.
 
 ## Extra optional arguments
@@ -127,7 +127,7 @@ Note the uppercase `S` above. This reflects that the genetic algorithm in this c
 is a class, and inside `run()` an instance of it will be created.
 
 We can also pass in arguments to be passed to the `solver`, eg the number of iterations
-(`n_generation` for most solvers, `n_iteration` for `particle_swarm_optimisation`).
+(`n_generation`; `particle_swarm_optimisation` also accepts its older name `n_iteration`).
 We can ask for a history of best fitness values to be returned also; in that case
 the third return value is the history instead of the number of generations.
 

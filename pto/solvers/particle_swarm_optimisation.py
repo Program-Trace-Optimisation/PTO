@@ -15,7 +15,10 @@ class particle_swarm_optimisation:
         mutation_rate=0.01,
         verbose=False,
         return_history=False,
+        n_generation=None,  # alias for n_iteration, for consistency with other solvers
     ):
+        if n_generation is not None:
+            n_iteration = n_generation
         self.op = op
         self.better = better
         self.callback = callback
