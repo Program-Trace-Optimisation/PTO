@@ -3,14 +3,17 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-scripts/results*.csv
-scripts/results*.txt
-scripts/runs_*/*
-scripts/outputs/history_*
-scripts/outputs/Landscape/Histories/*
-scripts/outputs/Landscape/Landscape_MetricSpace_npy
-scripts/outputs/Landscape/Landscape_xypn_axes
-scripts/outputs/PSO/tex_outputs
+# Research projects: scripts/<project>/ (see scripts/README.md)
+scripts/*/results*.csv
+scripts/*/results*.txt
+scripts/*/runs_*/*
+scripts/*/outputs/history_*
+scripts/*/outputs/histories/
+scripts/*/outputs/phenotypes/
+scripts/landscape_correlogram/outputs/Histories/*
+scripts/landscape_correlogram/outputs/Landscape_MetricSpace_npy
+scripts/landscape_correlogram/outputs/Landscape_xypn_axes
+scripts/evostar2025_pso/outputs/tex_outputs
 
 
 # C extensions

@@ -4,6 +4,11 @@ from datetime import datetime
 from multiprocessing import Pool
 import os
 from random import seed as stdlib_seed
+import sys
+
+# lc and lc_pto live in pto/problems/LambdaCalculus (not an importable package)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                '..', '..', 'pto', 'problems', 'LambdaCalculus'))
 
 from lc import *
 import lc
