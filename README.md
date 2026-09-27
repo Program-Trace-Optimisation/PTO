@@ -53,7 +53,7 @@ provides the same methods as the Python `random` module, but *traces*
 them so that we can use the collection of random decisions as a genotype.
 Because `rnd` mimics the `random` module API, we can test and debug our generator
 outside PTO, using `import random as rnd`, and then bring it into PTO by instead using
-`from PTO import run, rnd`.
+`from pto import run, rnd`.
 
 The generator can call sub-functions, but they have to defined as nested
 functions inside the generator function. (There is another approach which relaxes this
@@ -61,14 +61,16 @@ rule. TODO: document that approach elsewhere.)
 
 ## Different operators
 
-* There are three mutation operators:
-  * Point mutation, which makes one change: pass in `run(..., mutation='mutate_point_ind')`
-  * Position-wise mutation, which changes every locus with a certain low probability: pass `run(..., mutation='mutate_position_wise_ind')`
-  * Random mutation, which generates a completely new individual: pass in `run(..., mutation='mutate_random_ind')`
-* There are two crossover operators:
-  * Uniform crossover, which takes each value uniformly from one parent or the other: pass in `run(..., crossover='crossover_uniform_ind')`
-  * Convex crossover, which operates in the same way but on three parents: pass in `run(..., crossover='crossover_convex_ind')`
-  * (There is also one-point crossover, `crossover_one_point_ind`, which is well-defined only for base PTO, and so should not be used.)
+Operators are chosen by name through `solver_args`, and are used by the solvers that support them.
+
+* There are three mutation operators (used by `hill_climber` and `genetic_algorithm`):
+  * Point mutation, which makes one change: `run(..., solver_args={'mutation': 'mutate_point_ind'})`
+  * Position-wise mutation, which changes every locus with a certain low probability: `run(..., solver_args={'mutation': 'mutate_position_wise_ind'})` (the default)
+  * Random mutation, which generates a completely new individual: `run(..., solver_args={'mutation': 'mutate_random_ind'})`
+* Crossover operators (used by `genetic_algorithm`):
+  * Uniform crossover, which takes each value uniformly from one parent or the other: `run(..., Solver='genetic_algorithm', solver_args={'crossover': 'crossover_uniform_ind'})`
+  * One-point crossover, `crossover_one_point_ind`, which is well-defined only for base PTO, and so should not be used.
+  * Convex crossover (`convex_crossover_ind`) works in the same way as uniform crossover but on three parents. It is used internally by `particle_swarm_optimisation` and cannot be selected for the GA.
 
 ## Extra optional arguments
 
@@ -165,5 +167,4 @@ Please help us by submitting bug reports! Thanks!
 
 # Old version of PTO
 
-A previous version of PTO was described in two papers, published at EuroGP 2018 and EvoCOP 2019. If you wish to access that version for reproducibility of those papers, please see [this repo](https://github.com/Program-Trace-Optimisation/PTO_EvoSTAR_2018_EvoCOP_2019). [A draft of the EuroGP 2018 paper](docs/paper_2018.pdf) is available.
-
+A previous version of PTO was described in two papers, published at EuroGP 2018 and EvoCOP 2019. If you wish to access that version for reproducibility of those papers, please see [this repo](https://github.com/Program-Trace-Optimisation/PTO_EvoSTAR_2018_EvoCOP_2019).
