@@ -63,7 +63,8 @@ def generator(n):
 - `scripts/<project>/` - research experiments, one folder per project; run them from inside
   their folder (paths like `outputs/...` are relative). Not part of the package.
 - `pto-webapp/` (JavaScript port, browser playground) and `pto-scheme/` (Racket port) are
-  separate experimental implementations.
+  separate experimental implementations. Web app: `cd pto-webapp && npm ci && npm test`;
+  after changing `src/`, `npm run build` and commit `ui/pto-bundle.js` (CI fails if it is stale).
 
 ## Pitfalls
 
