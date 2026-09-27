@@ -44,7 +44,7 @@ def even_parity(s):
     return "sum(x) % 2 == 0"
 
 
-def cnf_generator(s, clause_len):
+def cnf_generator(s, clause_len=3):
     # an alternative target generator
     # we have s variables, and we combine them in cnf
     # we have s / clause_len clauses
@@ -59,7 +59,7 @@ def cnf_generator(s, clause_len):
     # print(expr)
     return expr
 
-def make_training_data(n_samples, n_vars, func_set, term_set, target_gen=cnf_generator, cnf_clause_len=None):
+def make_training_data(n_samples, n_vars, func_set, term_set, target_gen=cnf_generator, cnf_clause_len=3):
     # pass in target_gen='full' if we want a "full" target instead, or target_gen='even_parity'
 
     if target_gen == cnf_generator:

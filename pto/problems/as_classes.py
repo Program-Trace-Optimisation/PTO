@@ -248,7 +248,7 @@ class Assignment(Problem):
         self.estimate_average_fitness()
 
 class SymbolicRegression(Problem):
-    def __init__(self, n_samples, n_vars, target_gen=None, cnf_clause_len=None):
+    def __init__(self, n_samples, n_vars, target_gen=None, cnf_clause_len=3):
         super().__init__()
         if target_gen is None: target_gen = symbolic_regression.cnf_generator
         self.fitness = symbolic_regression.fitness
@@ -265,7 +265,7 @@ class SymbolicRegression(Problem):
         self.estimate_average_fitness()
 
 class BFSCNF(Problem):
-    def __init__(self, n_vars, target_gen=None, clause_len=None):
+    def __init__(self, n_vars, target_gen=None, clause_len=3):
         super().__init__()
         if target_gen is None: target_gen = symbolic_regression.cnf_generator
         self.fitness = symbolic_regression.balanced_fitness
