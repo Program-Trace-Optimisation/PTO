@@ -40,6 +40,12 @@
         <option value="fine">Fine</option>
       </select>
 
+      <label>Direction</label>
+      <select id="better-select" title="Maximise or minimise the fitness">
+        <option value="max">Maximise</option>
+        <option value="min">Minimise</option>
+      </select>
+
       <label>Iterations</label>
       <input type="number" id="iterations-input" value="200" min="1" max="100000" />
 
@@ -92,6 +98,7 @@
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
 
 <!-- App logic -->
+<script src="examples.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
