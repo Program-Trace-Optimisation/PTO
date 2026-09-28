@@ -13,7 +13,7 @@ def aligned(*sols):
 def crossover_one_point_ind(space, sol1, sol2):
     """Aligned decisions before a random point from sol1, the rest from sol2."""
     shared = aligned(sol1, sol2)
-    point = space.rng.randint(0, len(shared))
+    point = space.search_rng.randint(0, len(shared))
     trace = sol1.geno | sol2.geno
     trace.update((a, sol1.geno[a]) for a in shared[:point])
     return space.play(trace)

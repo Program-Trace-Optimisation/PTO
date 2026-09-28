@@ -44,5 +44,22 @@ class TestSolvers(unittest.TestCase):
         res = pso()
         self.assertTrue(len(res[0].geno) == 3)
 
+    def test_solvers_draw_their_random_numbers_from_op_search_rng(self):
+        self.assertIs(Op.search_rng, random)  # the default: the random module
+
+        class CountingRandom(random.Random):
+            calls = 0
+            def random(self):
+                CountingRandom.calls += 1
+                return super().random()
+
+        for Solver, draws in [(GA, True), (HC, False), (RS, False), (PSO, False)]:
+            with self.subTest(solver=Solver.__name__):
+                CountingRandom.calls = 0
+                op = Op(generator=random_program, fitness=fitness, tracer=tracer)
+                op.search_rng = CountingRandom(0)
+                Solver(op, n_generation=3)()
+                self.assertEqual(CountingRandom.calls > 0, draws)
+
 if __name__ == '__main__':
     unittest.main()

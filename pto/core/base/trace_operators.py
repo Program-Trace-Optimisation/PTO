@@ -27,6 +27,7 @@ class Op:
     """
 
     tracer = tracer  # bind operators to tracer
+    search_rng = random  # the search's random numbers (solvers draw from op.search_rng)
 
     def __init__(
         self,

@@ -1,7 +1,6 @@
 # GENETIC ALGORITHM
 
 import math
-import random
 
 
 class genetic_algorithm:
@@ -109,13 +108,13 @@ class genetic_algorithm:
 
     def crossover_pop(self, population):
         return [
-            self.op.crossover_ind(random.choice(population), random.choice(population))
+            self.op.crossover_ind(self.op.search_rng.choice(population), self.op.search_rng.choice(population))
             for _ in range(self.population_size)
         ]
 
     def mutate_pop(self, population):
         return [(self.op.mutate_ind(sol) 
-                if random.random() < self.mutation_rate 
+                if self.op.search_rng.random() < self.mutation_rate 
                 else sol)
                 for sol in population]
 

@@ -54,6 +54,37 @@ class TestRun(unittest.TestCase):
         self.assertEqual(a.best.pheno, b.best.pheno)
         self.assertEqual(random.getstate(), before)
 
+    def test_global_random_is_left_alone(self):
+        results = []
+        for global_seed in (1, 2):
+            random.seed(global_seed)
+            before = random.getstate()
+            results.append(run(generator, sum, Solver="genetic_algorithm", seed=4,
+                               solver_args={"n_generation": 5}))
+            self.assertEqual(random.getstate(), before)  # not used, not reseeded
+        self.assertEqual(results[0].best.pheno, results[1].best.pheno)
+
+    def test_solvers_draw_from_the_search_stream(self):
+        from pto.solvers import genetic_algorithm
+
+        class CountingRandom(random.Random):
+            calls = 0
+            def random(self):
+                CountingRandom.calls += 1
+                return super().random()
+
+        space = SearchSpace(generator, sum, seed=0)
+        space.search_rng = CountingRandom(0)
+        before = space.decision_rng.getstate()
+        genetic_algorithm(space, n_generation=2, population_size=4, mutation_rate=0)()
+        self.assertGreater(CountingRandom.calls, 0)
+        # onemax needs no new decisions after the initial population, which is
+        # the only thing drawn from the decision stream
+        fresh = SearchSpace(generator, sum, seed=0)
+        [fresh.create_ind() for _ in range(4)]
+        self.assertEqual(space.decision_rng.getstate(), fresh.decision_rng.getstate())
+        self.assertNotEqual(before, space.decision_rng.getstate())
+
     def test_search_operators(self):
         space = run(generator, sum, Solver="search_operators")
         self.assertIsInstance(space, SearchSpace)

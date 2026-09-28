@@ -291,6 +291,7 @@ Where things are:
 If adding a solver, we recommend to use the argument names:
 
 * `n_generation` for the number of iterations of the search algorithm
+* draw the algorithm's own random numbers from `op.search_rng` (eg `self.op.search_rng.choice(population)`)
 * `better`, `callback`, `verbose` and `return_history` with the same meaning as in
   [hill_climber.py](pto/solvers/hill_climber.py)
 

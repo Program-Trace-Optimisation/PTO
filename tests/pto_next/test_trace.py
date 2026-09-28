@@ -91,5 +91,36 @@ class TestSpacesAreIndependent(unittest.TestCase):
         self.assertEqual(a.mutate_ind(sa).pheno, b.mutate_ind(sb).pheno)
 
 
+def one_random():
+    return rnd.random()
+
+
+class TestRandomStreams(unittest.TestCase):
+
+    def test_decisions_come_from_the_decision_stream(self):
+        space = SearchSpace(one_random, lambda x: x, seed=7)
+        self.assertEqual(space.create_ind().pheno, random.Random("7:decisions").random())
+
+    def test_search_draws_nothing_from_the_decision_stream(self):
+        space = SearchSpace(onemax, sum, (20,), seed=0)
+        a, b = space.create_ind(), space.create_ind()
+        before = space.decision_rng.getstate()
+        for _ in range(20):  # onemax needs no new decisions after mutation or crossover
+            space.mutate_position_wise_ind(a), space.mutate_point_ind(a)
+            space.crossover_uniform_ind(a, b), space.crossover_one_point_ind(a, b)
+        self.assertEqual(space.decision_rng.getstate(), before)
+
+    def test_same_initial_population_whatever_the_search(self):
+        from pto_next import run
+        first = []
+        for crossover, mutation_rate in (("crossover_uniform_ind", 0.1), ("crossover_one_point_ind", 0.9)):
+            populations = []
+            run(onemax, sum, (10,), Solver="genetic_algorithm", seed=3, callback=populations.append,
+                solver_args={"n_generation": 3, "population_size": 6, "crossover": crossover,
+                             "mutation_rate": mutation_rate})
+            first.append([s.pheno for s in populations[0][0]])
+        self.assertEqual(first[0], first[1])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -8,7 +8,8 @@ Each module of this package holds search operators, as plain functions:
 
 and OPS, a tuple of them. An operator works on traces, using only the
 search space (see space.py): space.play(trace) to turn a trace into a
-solution, space.rng, and the variation of single decisions,
+solution, space.search_rng (the search's random numbers), and the variation
+of single decisions,
 space.mutate_choice, space.crossover_choices, space.convex_crossover_choices,
 space.distance_choices. It is selected by its function's name, eg
 SearchSpace(..., mutation="mutate_point_ind"). Adding an operator is adding

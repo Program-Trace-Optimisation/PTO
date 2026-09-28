@@ -42,7 +42,8 @@ def generator(n):
   `seed`, and research-only `name_type` (`"str"` default / `"lin"`), `dist_type` (`"fine"` default /
   `"coarse"`) and `naming` (`"dynamic"` default / `"static"`: structured names computed at run time or
   compile time; static needs `name_type="str"` and rejects `rnd` calls in helpers outside the generator).
-- `Solver` is a name from `pto/solvers/` or a class. A solver is created as
+- Solvers draw their own random numbers from `op.search_rng` (the `random` module in the old
+  core, the search stream in `pto_next`). `Solver` is a name from `pto/solvers/` or a class. A solver is created as
   `Solver(op, better=..., callback=..., **solver_args)` and called with no arguments; it uses
   `op.create_ind / evaluate_ind / mutate_ind / crossover_ind / distance_ind`.
 - Solvers: `hill_climber` (default), `random_search`, `genetic_algorithm`,

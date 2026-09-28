@@ -1,6 +1,5 @@
 """run(): build a search space and run a solver on it."""
 
-import random
 from dataclasses import dataclass
 from importlib import import_module
 from typing import Any, Optional
@@ -60,32 +59,20 @@ def run(
     Solver:      a solver class, or the name of one in pto.solvers
     solver_args: dict of arguments for the solver (n_generation, mutation, ...)
     callback:    passed to the solver
-    seed:        makes the run reproducible
+    seed:        makes the run reproducible (see SearchSpace for the random streams)
     naming:      'dynamic' (default), 'static' or 'linear'
     operators:   'fine' (default) or 'coarse'
 
     Returns a Result, or the SearchSpace itself with Solver='search_operators'.
     """
     solver_args = dict(solver_args or {})
-    seeds = random.Random(seed)
     space = SearchSpace(
-        generator, fitness, gen_args, fit_args, naming=naming, operators=operators,
-        seed=seeds.getrandbits(64) if seed is not None else None,
+        generator, fitness, gen_args, fit_args, naming=naming, operators=operators, seed=seed,
     )
     if Solver == "search_operators":
         return space
     Solver = solver_class(Solver)
-
-    # the solvers of pto.solvers draw from the global random module: seed it
-    # (independently of space.rng) for the run, then restore it
-    state = random.getstate() if seed is not None else None
-    if seed is not None:
-        random.seed(seeds.getrandbits(64))
-    try:
-        best, fx, third = Solver(space, better=better, callback=callback, **solver_args)()
-    finally:
-        if state is not None:
-            random.setstate(state)
+    best, fx, third = Solver(space, better=better, callback=callback, **solver_args)()
     if solver_args.get("return_history"):
         return Result(best, fx, history=third)
     return Result(best, fx, generations=third)

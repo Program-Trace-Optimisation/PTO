@@ -249,7 +249,7 @@ class novelty_search:
     def crossover_pop(self, population):
         """Create offspring through crossover."""
         return [
-            self.op.crossover_ind(random.choice(population), random.choice(population))
+            self.op.crossover_ind(self.op.search_rng.choice(population), self.op.search_rng.choice(population))
             for _ in range(self.population_size)
         ]
 

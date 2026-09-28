@@ -67,8 +67,15 @@ pto_next/
   `decide(distribution, name)`: during a play the decision is recorded, outside a play it
   is sampled from `random`, so a generator also runs without PTO.
 * **Search operators are plain functions** of the search space: they only use
-  `space.play(trace)`, `space.rng` and the variation of single decisions
+  `space.play(trace)`, `space.search_rng` and the variation of single decisions
   (`space.mutate_choice`, `space.crossover_choices`, ...).
+* **Two random streams**, derived by name from the seed. `decision_rng` is the
+  generator's randomness: the decisions sampled or repaired while playing a trace, the
+  only randomness traces record. `search_rng` is the search's: search operators and
+  solvers draw their random numbers from it, and it is never recorded. So with the
+  same seed the initial solutions are the same whatever the operators and solver, and
+  runs are reproducible in any process. The global `random` module is left to the user:
+  problem data, a noisy fitness, and `rnd` outside a play.
 * **No global configuration**: two search spaces with different settings coexist, and
   nothing one run does affects another.
 
@@ -118,7 +125,7 @@ Solution` (or `(space, a, b) -> float` for a distance), and `OPS`, the tuple of 
 def mutate_two_points_ind(space, sol):
     """Mutate two different random decisions."""
     trace = dict(sol.geno)
-    for address in space.rng.sample(list(trace), min(2, len(trace))):
+    for address in space.search_rng.sample(list(trace), min(2, len(trace))):
         trace[address] = space.mutate_choice(trace[address])
     return space.play(trace)
 
@@ -167,7 +174,7 @@ Dynamic and static naming rewrite the generator with the same transformer and pr
 | Addresses | strings; dynamic and static differ | tuples, the same for dynamic and static |
 | Coarse vs fine | changes the class of the trace entries | same traces, different operators |
 | Replaying an unchanged call | builds a new entry | reuses the recorded (immutable) choice |
-| Randomness | the global `random` module | each search space has its own `random.Random` (`space.rng`); `run(seed=...)` also seeds the global module for the solvers, and restores it afterwards |
+| Randomness | the global `random` module | two streams per search space: `decision_rng` (the generator's decisions) and `search_rng` (search operators and solvers); the global `random` is not used |
 | `run()` returns | a tuple | a `Result` (`best`, `fitness`, `generations`, `history`) that unpacks like the tuple |
 | Permutation mutation (`shuffle`) | a swap, or half the time nothing | always a swap |
 | Distances of permutations and samples | counts | normalised to [0, 1], like the other decisions |
@@ -196,7 +203,6 @@ reusing unchanged choices on replay, and building addresses as tuples.
 
 * The Jupyter GUI and `pto.gui.trace_tree` expect the old string names.
 * `space_dimension_ind` (used by `as_classes`) is not implemented.
-* Solvers still draw from the global `random` module rather than `space.rng`.
 * Lambdas inside a generator have no scope of their own, and a nested function called
   through another function (eg `map(helper, xs)`) gets the address of that call, so
   repeated calls there can collide (dynamic) or are rejected (static).

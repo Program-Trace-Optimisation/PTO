@@ -1,7 +1,7 @@
 """The search space: a problem bound to how its solutions are represented and varied.
 
 A SearchSpace binds a generator and a fitness function to a naming, to fine
-or coarse variation of the decisions, to a random number generator, and to
+or coarse variation of the decisions, to two random number generators, and to
 the search operators chosen for mutation and crossover. It is what solvers
 see: they create, evaluate, mutate and recombine solutions through it and
 never see what a solution looks like. It implements no operators itself:
@@ -11,6 +11,18 @@ how its decisions vary (distributions/).
 Every search operator is also available as a method under its own name (eg
 space.mutate_point_ind), which is how the solvers of the original core choose
 them.
+
+Randomness comes from two independent streams, derived by name from the seed:
+
+    decision_rng  the generator's randomness: the decisions sampled or repaired
+                  while playing a trace. The only randomness that traces record.
+    search_rng    the search's randomness: search operators and solvers draw
+                  their random numbers from it. Never recorded.
+
+So the search draws no numbers from the generator's stream: with the same seed,
+the initial solutions are the same whatever the operators and solver. The
+global random module is left to the user (problem data, noisy fitness, and rnd
+outside a play).
 """
 
 import random
@@ -49,7 +61,7 @@ class SearchSpace:
         operators: 'fine' (default) or 'coarse' variation of the decisions
         mutation, crossover: names of the search operators used as
                    mutate_ind and crossover_ind (see search_operators/)
-        seed:      seed of this space's random number generator (self.rng)
+        seed:      seed of this space's random streams (decision_rng, search_rng)
         """
         if naming not in NAMINGS:
             raise ValueError(f"Invalid naming: {naming!r}. Must be one of {list(NAMINGS)}")
@@ -61,7 +73,8 @@ class SearchSpace:
         self.gen_args = tuple(gen_args)
         self.fitness = fitness
         self.fit_args = tuple(fit_args)
-        self.rng = random.Random(seed)
+        self.decision_rng = _stream(seed, "decisions")
+        self.search_rng = _stream(seed, "search")
         self.mutate_ind = getattr(self, mutation)
         self.crossover_ind = getattr(self, crossover)
 
@@ -81,7 +94,7 @@ class SearchSpace:
 
     def play(self, trace):
         """The solution the generator makes from trace (repairing it as needed)."""
-        pheno, geno = play(self.generator, trace, self.rng, self.repair_choice,
+        pheno, geno = play(self.generator, trace, self.decision_rng, self.repair_choice,
                            self.naming.start(), self.gen_args)
         return Solution(pheno, geno)
 
@@ -99,16 +112,22 @@ class SearchSpace:
         return type(dist) if self.fine else Distribution
 
     def mutate_choice(self, c):
-        return self._variation(c.dist).mutate(c.dist, c.value, self.rng)
+        return self._variation(c.dist).mutate(c.dist, c.value, self.search_rng)
 
     def crossover_choices(self, c1, c2):
-        return self._variation(c1.dist).crossover(c1.dist, c1.value, c2, self.rng)
+        return self._variation(c1.dist).crossover(c1.dist, c1.value, c2, self.search_rng)
 
     def convex_crossover_choices(self, c1, c2, c3):
-        return self._variation(c1.dist).convex_crossover(c1.dist, c1.value, c2, c3, self.rng)
+        return self._variation(c1.dist).convex_crossover(c1.dist, c1.value, c2, c3, self.search_rng)
 
     def distance_choices(self, c1, c2):
         return self._variation(c1.dist).distance(c1.dist, c1.value, c2)
 
-    def repair_choice(self, prev, dist, rng):
+    def repair_choice(self, prev, dist, rng):  # called by play, with decision_rng
         return self._variation(dist).repair(dist, prev, rng)
+
+
+def _stream(seed, name):
+    """A random number generator for one purpose: seeded from seed and name, so that
+    streams are independent and the same in every process; unseeded if seed is None."""
+    return random.Random() if seed is None else random.Random(f"{seed}:{name}")
