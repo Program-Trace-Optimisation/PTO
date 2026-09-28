@@ -117,7 +117,7 @@ class novelty_search:
                 population, fitness_population
             )
 
-            search_state = (population, fitness_population, gen)
+            search_state = (population, fitness_population, gen + 1)
             best = self.best_pop(population, fitness_population)
 
             if self.verbose:
@@ -134,7 +134,7 @@ class novelty_search:
         if self.return_history:
             return *best, self.history
         else:
-            return best[0], best[1], gen
+            return best[0], best[1], search_state[2]
 
     def create_pop(self):
         """Create initial population."""

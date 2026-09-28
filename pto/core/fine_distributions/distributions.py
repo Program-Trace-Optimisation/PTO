@@ -1,4 +1,5 @@
 from copy import copy
+import math
 import random
 from collections import Counter
 from ..base import Dist, check_immutable
@@ -10,7 +11,7 @@ class Random_real(Dist):
 
     def __init__(self, fun, *args, val=None, **kwargs):
         super().__init__(fun, *args, val=val, **kwargs)
-        self.min, self.max, self.range = rng_specs[fun].params(args, kwargs)
+        self.min, self.max, self.range, self.loc = rng_specs[fun].params(args, kwargs)
 
     def repair_val(self):
         self.val = min(max(self.min, self.val), self.max)
@@ -46,6 +47,8 @@ class Random_real(Dist):
     @check_immutable
     def distance(self, other):
         if self.fun.__name__ == other.fun.__name__:
+            if self.range == 0:
+                return float(self.val != other.val)
             return min(1, abs(self.val - other.val) / self.range)
         return super().distance(other)
 
@@ -53,8 +56,8 @@ class Random_real(Dist):
         return 10
 
     def repair(self, other):
-        if self.fun.__name__ == other.fun.__name__:
-            self.val = ((other.val - other.min) / other.range) * self.range + self.min
+        if self.fun.__name__ == other.fun.__name__ and other.range != 0:
+            self.val = ((other.val - other.loc) / other.range) * self.range + self.loc
             self.repair_val()
         else:
             super().repair(other)
@@ -66,6 +69,15 @@ class Random_int(Dist):
     def __init__(self, fun, *args, val=None, **kwargs):
         super().__init__(fun, *args, val=val, **kwargs)
         self.min, self.max, self.step = rng_specs[fun].params(args, kwargs)
+        self.max = self.min + (self.max - self.min) // self.step * self.step  # on grid
+
+    def _between(self, a, b):
+        """Uniform value on the grid between a and b."""
+        lo = math.ceil((a - self.min) / self.step)
+        hi = math.floor((b - self.min) / self.step)
+        if lo > hi:
+            lo = hi = round((a - self.min) / self.step)
+        return self.min + random.randint(lo, hi) * self.step
 
     def repair_val(self):
         round_val = self.min + round((self.val - self.min) / self.step) * self.step
@@ -87,7 +99,8 @@ class Random_int(Dist):
             offspring = copy(self)
             min_val = min(self.val, other.val)
             max_val = max(self.val, other.val)
-            offspring.val = random.randint(min_val, max_val)
+            offspring.val = self._between(min_val, max_val)
+            offspring.repair_val()
             return offspring
         return super().crossover(other)
 
@@ -100,18 +113,21 @@ class Random_int(Dist):
             offspring = copy(self)
             min_val = min(self.val, other1.val, other2.val)
             max_val = max(self.val, other1.val, other2.val)
-            offspring.val = random.randint(min_val, max_val)
+            offspring.val = self._between(min_val, max_val)
+            offspring.repair_val()
             return offspring
         return super().convex_crossover(other1, other2)
 
     @check_immutable
     def distance(self, other):
         if self.fun.__name__ == other.fun.__name__:
+            if self.max == self.min:
+                return float(self.val != other.val)
             return min(1, abs(self.val - other.val) / (self.max - self.min))
         return super().distance(other)
 
     def size(self):
-        return (self.max - self.min) / self.step
+        return (self.max - self.min) // self.step + 1  # number of values
 
     def repair(self, other):
         if self.fun.__name__ == other.fun.__name__:
@@ -180,7 +196,7 @@ class Random_seq(Dist):
             if len(seq) >= 2:
                 i, j = random.sample(range(len(seq)), 2)
                 mut_seq[i], mut_seq[j] = seq[j], seq[i]
-        else:  # replace
+        elif seq:  # replace
             idx = random.randrange(len(seq))
             if pop:
                 mut_seq[idx] = random.choice(pop)
@@ -217,6 +233,8 @@ class Random_seq(Dist):
     # @check_immutable # pop is mutable
     def _swap_replace_crossover(seq1, seq2, pop, with_repl=True, end_point=False):
         cross_seq = copy(seq1)
+        if not seq1 or not seq2:
+            return cross_seq
         point = (
             min(len(seq1), len(seq2))
             if end_point
@@ -300,10 +318,10 @@ class Random_seq(Dist):
     def distance(self, other):
         if self.fun.__name__ == other.fun.__name__:
 
-            dist = self._swap_replace_distance(
+            total, insdels, swaps, replacements = self._swap_replace_distance(
                 self.val, other.val, **self._replace_from()[self.fun.__name__]
             )
-            return dist
+            return total
 
         return super().distance(other)
 

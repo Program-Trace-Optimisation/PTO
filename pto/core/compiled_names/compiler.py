@@ -23,9 +23,8 @@ Usage:
 """
 
 import ast
-import inspect
-import functools
-import textwrap
+
+from ..rewrite import rewrite_function
 
 
 # ---------------------------------------------------------------------------
@@ -293,18 +292,7 @@ def compile_generator(func):
         _original_source: the original source code
         _compiled_source: the transformed source code (via ast.unparse)
     """
-    source = textwrap.dedent(inspect.getsource(func))
-    tree = ast.parse(source)
-
-    transformer = NameCompiler()
-    tree = transformer.visit(tree)
-    tree = ast.fix_missing_locations(tree)
-
-    env = func.__globals__.copy()
-
-    exec(compile(tree, "<compiled>", "exec"), env)
-    new_func = env[func.__name__]
-    functools.update_wrapper(new_func, func)
+    new_func, source, new_source = rewrite_function(func, [NameCompiler()])
     new_func._original_source = source
-    new_func._compiled_source = ast.unparse(tree)
+    new_func._compiled_source = new_source
     return new_func

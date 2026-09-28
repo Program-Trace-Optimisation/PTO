@@ -54,6 +54,16 @@ class TestReadmeExamples(unittest.TestCase):
                 (pheno, geno), fx, _ = result
                 self.assertEqual(fx, sum(pheno))
 
+    def test_num_gen_counts_generations(self):
+        for solver, extra in [("random_search", {}), ("hill_climber", {}),
+                              ("genetic_algorithm", {}), ("particle_swarm_optimisation", {}),
+                              ("novelty_search", {"behavior_distance": lambda a, b: 0})]:
+            for n in [0, 3]:
+                with self.subTest(solver=solver, n_generation=n):
+                    *_, num_gen = run(generator, sum, better=max, Solver=solver,
+                                      solver_args={"n_generation": n, **extra})
+                    self.assertEqual(num_gen, n)
+
     def test_pso_budget_names(self):
         for budget in ["n_generation", "n_iteration"]:
             with self.subTest(budget=budget):
@@ -102,6 +112,30 @@ class TestReadmeExamples(unittest.TestCase):
         results = [run(generator, sum, better=max, seed=42,
                        solver_args={"n_generation": 5})[0].pheno for _ in range(2)]
         self.assertEqual(results[0], results[1])
+
+    def test_nested_generator(self):
+        n = 7
+
+        def nested_generator():
+            return [rnd.choice([0, 1]) for i in range(n)]  # n from the enclosing scope
+
+        (pheno, geno), fx, _ = run(nested_generator, sum, better=max,
+                                   solver_args={"n_generation": 3})
+        self.assertEqual(len(pheno), n)
+        self.assertEqual(len(geno), n)
+
+    def test_many_runs_in_one_process(self):
+        # each run() used to wrap the rnd functions once more, until RecursionError
+        for _ in range(600):
+            run(generator, sum, Solver="search_operators").create_ind()
+
+    def test_seed_restores_random_state_on_error(self):
+        def failing_fitness(x):
+            raise RuntimeError
+        before = random.getstate()
+        with self.assertRaises(RuntimeError):
+            run(generator, failing_fitness, seed=1)
+        self.assertEqual(random.getstate(), before)
 
     def test_custom_solver_class(self):
         class one_shot:

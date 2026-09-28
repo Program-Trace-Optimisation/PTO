@@ -64,7 +64,7 @@ class hill_climber:
                 key=lambda x: x[1],
             )
 
-            search_state = (individual, fitness_individual, gen)
+            search_state = (individual, fitness_individual, gen + 1)
             if self.verbose:
                 print(*search_state)
             if self.return_history:

@@ -1,7 +1,4 @@
-import ast
-import inspect
-import functools
-
+from ..rewrite import rewrite_function
 from .annotators import func_name, iter_name, Loop_name
 from .autogens import rnd
 from .autoplay import tracer
@@ -17,7 +14,8 @@ def ast_transform_decorator(transformations, environment=None, at_syntax=True):
     Takes a list of AST transformers and an optional environment dictionary,
     returns a decorator that applies these transformations to functions.
     The transformed function is executed in an environment that combines
-    the original function's globals with the provided environment dict.
+    the original function's globals (and enclosing variables, for a nested
+    function) with the provided environment dict.
 
     Args:
         transformations: List of AST transformer objects to apply
@@ -40,39 +38,14 @@ def ast_transform_decorator(transformations, environment=None, at_syntax=True):
     """
 
     def decorator(func):
-        # Get the source code of the function
-        source = inspect.getsource(func)
-
-        # Skip decorator line if used as @decorator
-        if at_syntax:
-            source = "\n".join(source.splitlines()[1:])
-
-        # Parse the source code into an AST
-        tree = ast.parse(source)
-
-        # Apply transformations
-        for t in transformations:
-            tree = t.visit(tree)
-        tree = ast.fix_missing_locations(tree)
-
-        # Compile the modified AST
-        compiled_code = compile(tree, "<string>", "exec")
-
-        # Use the original function's environment and the specified environment
-        env = func.__globals__ | (environment or {})
-
-        # execute transformed function definition which overrides previous definition
-        exec(compile(tree, "<ast>", "exec"), env)
-
-        # reference to transformed function
-        new_func = env[func.__name__]
-
-        # Copy the original function's metadata
-        functools.update_wrapper(new_func, func)
+        # Skip the decorator line if used as @decorator
+        new_func, source, new_source = rewrite_function(
+            func, transformations, environment, skip_first_line=at_syntax
+        )
 
         # Store source code
         new_func._old_source = source
-        new_func._new_source = ast.unparse(tree)
+        new_func._new_source = new_source
 
         return new_func
 

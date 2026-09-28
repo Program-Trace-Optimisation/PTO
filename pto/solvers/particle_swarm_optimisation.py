@@ -63,7 +63,7 @@ class particle_swarm_optimisation:
             )
 
             # search_state = (swarm, fitness_swarm, personal_best, fitness_personal_best, global_best, fitness_global_best)
-            search_state = (swarm, fitness_swarm, i)
+            search_state = (swarm, fitness_swarm, i + 1)
             if self.verbose and (i + 1) % 10 == 0:
                 print(f"Iteration {i + 1}: Best fitness: {fitness_global_best}")
             if self.callback and self.callback(search_state):
@@ -74,8 +74,7 @@ class particle_swarm_optimisation:
         if self.return_history:
             return global_best, fitness_global_best, self.history
         else:
-            return global_best, fitness_global_best, i
-        return
+            return global_best, fitness_global_best, search_state[2]
 
     def create_swarm(self):
         return [self.op.create_ind() for _ in range(self.n_particles)]

@@ -29,9 +29,9 @@ class AutoNamedRandomTraceable(RandomTraceable):
         dist_type = dist_type or self.dist_type
         name_type = name_type or self.name_type
 
-        # Handle dist_type configuration
-        if dist_type != self.dist_type:
-            super().config(dist_type)
+        # Rebind the traceable functions from scratch, so that the automatic
+        # naming below never wraps functions that are already wrapped
+        super().config(dist_type)
 
         # Handle name_type configuration
         if name_type != self.name_type:

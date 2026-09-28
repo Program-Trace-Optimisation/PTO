@@ -91,6 +91,18 @@ class TestCompiledNamesRun(unittest.TestCase):
         has_pick = any("pick" in key for key in geno)
         self.assertTrue(has_pick, f"Expected 'pick' in trace keys: {list(geno.keys())}")
 
+    def test_generator_defined_in_a_function(self):
+        """run() handles a nested generator that uses an enclosing variable."""
+        n = 7
+
+        def nested_generator():
+            return [rnd.choice([0, 1]) for i in range(n)]
+
+        (pheno, geno), fx, _ = run(nested_generator, sum, better=max,
+                                   solver_args={"n_generation": 3})
+        self.assertEqual(len(pheno), n)
+        self.assertEqual(len(geno), n)
+
     def test_nested_loops(self):
         """run() handles generators with nested loops."""
         random.seed(42)

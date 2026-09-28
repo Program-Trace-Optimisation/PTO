@@ -4,7 +4,8 @@ from collections import namedtuple
 
 """
 Parameter formats by type:
-- 'real': (min, max, range)  # range = max-min or 2*std_dev
+- 'real': (min, max, range, loc)  # range = max-min or 2*std_dev;
+                                  # repair keeps (val - loc) / range
 - 'int':  (min, max, step)   # inclusive bounds
 - 'cat':  sequence           # sequence
 - 'seq':  (sequence, k)      # k is number of items to select/generate
@@ -19,116 +20,90 @@ This file covers all random number generators from Python's Random module (3.12)
 
 RNGSpec = namedtuple("RNGSpec", ["type", "params"])
 
+_REQUIRED = object()
+
+
+def _arg(args, kwargs, i, name, default=_REQUIRED):
+    """Argument i of a random call, given positionally, by name or by default."""
+    if len(args) > i:
+        return args[i]
+    if name in kwargs:
+        return kwargs[name]
+    if default is _REQUIRED:
+        raise TypeError(f"missing argument '{name}'")
+    return default
+
+
+def _gauss_params(args, kwargs):
+    mu = _arg(args, kwargs, 0, "mu", 0.0)
+    sigma = _arg(args, kwargs, 1, "sigma", 1.0)
+    return (-math.inf, math.inf, 2 * sigma, mu)
+
+
+def _lognorm_params(args, kwargs):
+    mu = _arg(args, kwargs, 0, "mu")
+    sigma = _arg(args, kwargs, 1, "sigma")
+    std = ((math.exp(sigma**2) - 1) * math.exp(2 * mu + sigma**2)) ** 0.5
+    return (0, math.inf, 2 * std, 0)
+
+
+def _pareto_params(args, kwargs):
+    alpha = _arg(args, kwargs, 0, "alpha")
+    if alpha > 2:
+        spread = 2 * (alpha / ((alpha - 1) ** 2 * (alpha - 2))) ** 0.5
+    else:  # infinite variance: use the interquartile range
+        spread = 4 ** (1 / alpha) - (4 / 3) ** (1 / alpha)
+    return (1, math.inf, spread, 1)
+
+
+def _weibull_params(args, kwargs):
+    alpha = _arg(args, kwargs, 0, "alpha")  # scale
+    beta = _arg(args, kwargs, 1, "beta")  # shape
+    var = math.gamma(1 + 2 / beta) - math.gamma(1 + 1 / beta) ** 2
+    return (0, math.inf, 2 * alpha * var**0.5, 0)
+
+
+def _bounded(low_name, high_name, low_default=_REQUIRED, high_default=_REQUIRED):
+    def params(args, kwargs):
+        low = _arg(args, kwargs, 0, low_name, low_default)
+        high = _arg(args, kwargs, 1, high_name, high_default)
+        return (low, high, high - low, low)
+
+    return params
+
+
 rng_specs = {
     # Real-valued functions
-    random.random: RNGSpec(type="real", params=lambda args, kwargs: (0, 1, 1)),
-    random.uniform: RNGSpec(
-        type="real",
-        params=lambda args, kwargs: (
-            args[0] if args else kwargs["a"],
-            args[1] if len(args) > 1 else kwargs["b"],
-            (args[1] if len(args) > 1 else kwargs["b"])
-            - (args[0] if args else kwargs["a"]),
-        ),
-    ),
-    random.triangular: RNGSpec(
-        type="real",
-        params=lambda args, kwargs: (
-            args[0] if args else kwargs["low"],
-            args[1] if len(args) > 1 else kwargs["high"],
-            (args[1] if len(args) > 1 else kwargs["high"])
-            - (args[0] if args else kwargs["low"]),
-        ),
-    ),
-    random.betavariate: RNGSpec(type="real", params=lambda args, kwargs: (0, 1, 1)),
-    random.gauss: RNGSpec(
-        type="real",
-        params=lambda args, kwargs: (
-            -math.inf,
-            math.inf,
-            2 * (args[1] if len(args) > 1 else kwargs["sigma"]),
-        ),
-    ),
-    random.normalvariate: RNGSpec(
-        type="real",
-        params=lambda args, kwargs: (
-            -math.inf,
-            math.inf,
-            2 * (args[1] if len(args) > 1 else kwargs["sigma"]),
-        ),
-    ),
+    random.random: RNGSpec(type="real", params=lambda args, kwargs: (0, 1, 1, 0)),
+    random.uniform: RNGSpec(type="real", params=_bounded("a", "b")),
+    random.triangular: RNGSpec(type="real", params=_bounded("low", "high", 0.0, 1.0)),
+    random.betavariate: RNGSpec(type="real", params=lambda args, kwargs: (0, 1, 1, 0)),
+    random.gauss: RNGSpec(type="real", params=_gauss_params),
+    random.normalvariate: RNGSpec(type="real", params=_gauss_params),
     random.expovariate: RNGSpec(
         type="real",
         params=lambda args, kwargs: (
             0,
             math.inf,
-            2.0 / (args[0] if args else kwargs["lambd"]),
+            2.0 / _arg(args, kwargs, 0, "lambd", 1.0),
+            0,
         ),
     ),
     random.gammavariate: RNGSpec(
         type="real",
-        params=lambda args, kwargs: (
+        params=lambda args, kwargs: (  # beta is a scale: std = sqrt(alpha) * beta
             0,
             math.inf,
-            2
-            * (
-                (args[0] if args else kwargs["alpha"]) ** 0.5
-                / (args[1] if len(args) > 1 else kwargs["beta"])
-            ),
-        ),
-    ),
-    random.lognormvariate: RNGSpec(
-        type="real",
-        params=lambda args, kwargs: (
+            2 * _arg(args, kwargs, 0, "alpha") ** 0.5 * _arg(args, kwargs, 1, "beta"),
             0,
-            math.inf,
-            2
-            * (
-                math.exp((args[1] if len(args) > 1 else kwargs["sigma"]) ** 2 - 1)
-                * math.exp(
-                    2 * (args[0] if args else kwargs["mu"])
-                    + (args[1] if len(args) > 1 else kwargs["sigma"]) ** 2
-                )
-            )
-            ** 0.5,
         ),
     ),
+    random.lognormvariate: RNGSpec(type="real", params=_lognorm_params),
     random.vonmisesvariate: RNGSpec(
-        type="real", params=lambda args, kwargs: (-math.pi, math.pi, 2 * math.pi)
+        type="real", params=lambda args, kwargs: (-math.pi, math.pi, 2 * math.pi, -math.pi)
     ),
-    random.paretovariate: RNGSpec(
-        type="real",
-        params=lambda args, kwargs: (
-            1,
-            math.inf,
-            2
-            * (
-                (args[0] if args else kwargs["alpha"])
-                / (
-                    (args[0] if args else kwargs["alpha"] - 1) ** 2
-                    * (args[0] if args else kwargs["alpha"] - 2)
-                )
-            )
-            ** 0.5,
-        ),
-    ),
-    random.weibullvariate: RNGSpec(
-        type="real",
-        params=lambda args, kwargs: (
-            0,
-            math.inf,
-            2
-            * (
-                1.0
-                / (args[1] if len(args) > 1 else kwargs["beta"])
-                * (
-                    math.gamma(1 + 2.0 / (args[0] if args else kwargs["alpha"]))
-                    - math.gamma(1 + 1.0 / (args[0] if args else kwargs["alpha"])) ** 2
-                )
-                ** 0.5
-            ),
-        ),
-    ),
+    random.paretovariate: RNGSpec(type="real", params=_pareto_params),
+    random.weibullvariate: RNGSpec(type="real", params=_weibull_params),
     # Integer-valued functions
     random.randrange: RNGSpec(
         type="int",

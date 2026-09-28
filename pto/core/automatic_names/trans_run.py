@@ -94,14 +94,13 @@ def run(Gen, *args, seed=None, **kwargs):
         rng_state = random.getstate()  # Save current state
         random.seed(seed)
 
-    Gen = gen_fun(Gen)
-    result = name_run(Gen, *args, **kwargs)
-
-    # Restore random generator to previous state
-    if seed is not None:
-        random.setstate(rng_state)
-
-    return result
+    try:
+        Gen = gen_fun(Gen)
+        return name_run(Gen, *args, **kwargs)
+    finally:
+        # Restore random generator to previous state, also if the run raises
+        if seed is not None:
+            random.setstate(rng_state)
 
 
 # FEATURES/LIMITATIONS (checked 2026-09):

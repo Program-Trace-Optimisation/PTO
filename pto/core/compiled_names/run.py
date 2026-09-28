@@ -29,10 +29,9 @@ def run(Gen, *args, seed=None, **kwargs):
         rng_state = random.getstate()
         random.seed(seed)
 
-    Gen = compile_generator(Gen)
-    result = fine_run(Gen, *args, **kwargs)
-
-    if seed is not None:
-        random.setstate(rng_state)
-
-    return result
+    try:
+        Gen = compile_generator(Gen)
+        return fine_run(Gen, *args, **kwargs)
+    finally:
+        if seed is not None:
+            random.setstate(rng_state)

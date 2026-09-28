@@ -70,7 +70,7 @@ class genetic_algorithm:
             population[0] = best[0]  # elitism
             fitness_population = self.evaluate_pop(population)
 
-            search_state = (population, fitness_population, gen)
+            search_state = (population, fitness_population, gen + 1)
             best = self.best_pop(population, fitness_population)
             if self.verbose:
                 print(*self.best_pop(population, fitness_population))
@@ -82,7 +82,7 @@ class genetic_algorithm:
         if self.return_history:
             return *best, self.history
         else:
-            return best[0], best[1], gen
+            return best[0], best[1], search_state[2]
 
     #################
     # POP FUNCTIONS #

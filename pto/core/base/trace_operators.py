@@ -135,7 +135,7 @@ class Op:
         alignment = self._align_genotypes(sol1, sol2)
         crossover_point = random.randint(0, len(alignment))
         new_geno_alignment = {
-            key: (sol1 if pos <= crossover_point else sol2).geno[key]
+            key: (sol1 if pos < crossover_point else sol2).geno[key]
             for pos, key in enumerate(alignment)
         }
         new_geno = sol1.geno | sol2.geno | new_geno_alignment

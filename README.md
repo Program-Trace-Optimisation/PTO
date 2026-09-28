@@ -81,7 +81,7 @@ PTO reads the generator's source code to give each random decision a name that r
 where it happens in the program (which loop iteration, which function call). So:
 
 * The generator must be an ordinary function defined with `def`, in a `.py` file or a notebook
-  cell. Lambdas and methods of a class do not work.
+  cell (it can also be defined inside another function). Lambdas and methods of a class do not work.
 * The generator can call helper functions. Helpers that make random decisions work best
   nested inside the generator function: helpers defined outside it also work, but their random
   decisions get less informative names.
