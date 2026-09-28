@@ -60,6 +60,11 @@ def generator(n):
   (dynamic trace names; its `rnd` is `from pto import rnd`). `compiled_names` is the static
   alternative that injects names by AST rewriting, using the same `rnd`. `interface.run` is
   `from pto import run` and selects one with `naming=`; `rewrite.py` is their shared source rewriting.
+- `pto_next/` - an experimental from-scratch core with the same user interface (`from pto_next
+  import run, rnd`), run alongside `pto` for comparison; see `pto_next/README.md`. It reuses
+  `pto.solvers` and `pto.problems`; tests in `tests/pto_next/`. Don't change `pto/` for it.
+  A new distribution is a module of `pto_next/distributions/` (classes, rnd functions, `RND`);
+  a new search operator is a module of `pto_next/search_operators/` (functions, `OPS`).
 - `pto/solvers/`, `pto/problems/` (standalone examples; `as_classes.py` wraps them as classes
   for experiments), `pto/gui/` (Jupyter GUI, `trace_tree` Graphviz visualisation).
 - `tests/` - unittest `.py` files plus test notebooks. `tests/pto/test_user_api.py` mirrors the

@@ -282,6 +282,8 @@ Where things are:
 * `scripts/` - experiments for research projects, one folder per project (see
   [scripts/README.md](scripts/README.md)). Put a new project in its own folder there.
 * `docs/` - figures used in documentation.
+* `pto_next/` - an experimental new core with the same interface, being tried out alongside
+  `pto` (see [pto_next/README.md](pto_next/README.md)).
 * `pto-webapp/` and `pto-scheme/` - experimental ports of PTO to JavaScript and Racket.
 
 # Code style
