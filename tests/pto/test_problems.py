@@ -54,6 +54,14 @@ class TestProblemsAsClasses(unittest.TestCase):
                 )
                 self.assertEqual(fx, prob.fitness(pheno, *prob.fit_args))
 
+    def test_random_state_gives_the_same_instance(self):
+        numpy.random.seed(1)
+        a = P.Assignment(num_agents=4, num_tasks=6, random_state=3)
+        numpy.random.seed(2)
+        b = P.Assignment(num_agents=4, num_tasks=6, random_state=3)
+        for x, y in zip(a.fit_args, b.fit_args):
+            self.assertTrue((x == y).all())
+
 
 class TestLambdaCalculus(unittest.TestCase):
     """pto.problems.LambdaCalculus is a package; its fitness must also work

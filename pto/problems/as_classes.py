@@ -236,7 +236,9 @@ class Assignment(Problem):
         if num_agents is not None:
             if num_tasks is None:
                 num_tasks = num_agents * 2
-            cost_matrix, resource_matrix, agent_capacities = assignment.generate_gap_instance(num_agents, num_tasks)
+            cost_matrix, resource_matrix, agent_capacities = assignment.generate_gap_instance(
+                num_agents, num_tasks, seed=random_state
+            )
         self.fitness = assignment.fitness
         self.generator = assignment.generator_native
         self.gen_args = (num_agents, num_tasks)
