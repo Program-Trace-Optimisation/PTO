@@ -41,7 +41,11 @@ class RandomTraceable:
                 if self.dist_type == "coarse"
                 else self.CLASS_MAP[rng_specs[fun].type]
             )
-            setattr(self, fun.__name__, self._create_traceable(fun, dist_cls))
+            setattr(self, fun.__name__, self._wrap(self._create_traceable(fun, dist_cls)))
+
+    def _wrap(self, traceable):
+        """Hook for subclasses to wrap each traceable function when it is bound."""
+        return traceable
 
     def _create_traceable(self, fun, dist_cls):
         """Create a traceable version of a random function."""

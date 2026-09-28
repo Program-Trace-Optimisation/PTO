@@ -1,1 +1,2 @@
-from .automatic_names import run, rnd
+from .automatic_names import rnd
+from .interface import run

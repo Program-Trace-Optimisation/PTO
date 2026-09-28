@@ -5,7 +5,7 @@ from .autoplay import tracer
 from .autogens import rnd
 
 
-def run(*args, name_type="str", dist_type="fine", **kwargs):
+def run(*args, name_type="str", dist_type="fine", naming="dynamic", **kwargs):
     """
     Configure naming and distribution types, then run optimization.
 
@@ -16,6 +16,8 @@ def run(*args, name_type="str", dist_type="fine", **kwargs):
         *args: Positional arguments to pass to fine_run
         name_type: How to generate names - 'lin' (sequential) or 'str' (structural)
         dist_type: Type of distribution - 'coarse' or 'fine'
+        naming: 'dynamic' (names computed at run time) or 'static' (names
+            already injected into the generator by compiled_names)
         **kwargs: Additional arguments to pass to fine_run
 
     Returns:
@@ -29,7 +31,7 @@ def run(*args, name_type="str", dist_type="fine", **kwargs):
         solution = run(generator, fitness, name_type='lin')
     """
     # Configure random number generator naming and distribution types
-    rnd.CONFIG(name_type=name_type, dist_type=dist_type)
+    rnd.CONFIG(name_type=name_type, dist_type=dist_type, naming=naming)
 
     # Bind autoplay tracer to operators
     Op.tracer = tracer

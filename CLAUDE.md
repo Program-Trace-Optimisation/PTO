@@ -39,7 +39,9 @@ def generator(n):
   `solver_args`, never as keyword arguments of `run()`.
 - Other `run()` arguments: `fit_args`, `callback` (receives `(sol, fx, gen)` from hill_climber /
   random_search, `(population, fitnesses, gen)` from population solvers; returning true stops),
-  `seed`, and research-only `name_type` (`"str"` default / `"lin"`) and `dist_type` (`"fine"` default / `"coarse"`).
+  `seed`, and research-only `name_type` (`"str"` default / `"lin"`), `dist_type` (`"fine"` default /
+  `"coarse"`) and `naming` (`"dynamic"` default / `"static"`: structured names computed at run time or
+  compile time; static needs `name_type="str"` and rejects `rnd` calls in helpers outside the generator).
 - `Solver` is a name from `pto/solvers/` or a class. A solver is created as
   `Solver(op, better=..., callback=..., **solver_args)` and called with no arguments; it uses
   `op.create_ind / evaluate_ind / mutate_ind / crossover_ind / distance_ind`.
@@ -55,8 +57,9 @@ def generator(n):
 
 - `pto/core/` - layers, each with its own `run()`: `base` (Tracer, Dist, Op) ->
   `fine_distributions` (fine Random_* distributions with repair, `rnd`) -> `automatic_names`
-  (automatic trace names; this is `from pto import run, rnd`). `compiled_names` is an
-  alternative to `automatic_names` that injects names by AST rewriting.
+  (dynamic trace names; its `rnd` is `from pto import rnd`). `compiled_names` is the static
+  alternative that injects names by AST rewriting, using the same `rnd`. `interface.run` is
+  `from pto import run` and selects one with `naming=`; `rewrite.py` is their shared source rewriting.
 - `pto/solvers/`, `pto/problems/` (standalone examples; `as_classes.py` wraps them as classes
   for experiments), `pto/gui/` (Jupyter GUI, `trace_tree` Graphviz visualisation).
 - `tests/` - unittest `.py` files plus test notebooks. `tests/pto/test_user_api.py` mirrors the

@@ -9,22 +9,25 @@ The compiled generator works with the existing PTO layers (fine
 distributions, tracer, rnd proxy) — it just replaces the automatic
 names layer (runtime stack + inspect) with static name injection.
 
-Usage:
-    from pto.core.compiler import compile_generator
+Usually selected through run():
+
+    from pto import run, rnd
 
     def generator():
         return [rnd.choice([0, 1]) for i in range(10)]
 
-    compiled = compile_generator(generator)
+    result = run(generator, sum, better=max, naming="static")
 
-    # Use with PTO as normal — rnd and tracer handle tracing/replay
-    from pto import run
-    result = run(compiled, sum, better=max)
+or directly:
+
+    from pto.core.compiled_names.compiler import compile_generator
+    compiled = compile_generator(generator)
 """
 
 import ast
 
-from ..rewrite import rewrite_function
+from ..fine_distributions import RandomTraceable
+from ..rewrite import closure_vars, rewrite_function
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +57,8 @@ class NameCompiler(ast.NodeTransformer):
     6. top-level function: inject __prefix__ = "root/..." preamble.
     """
 
-    def __init__(self):
+    def __init__(self, rnd_names=("rnd",)):
+        self.rnd_names = set(rnd_names)  # names under which the generator uses rnd
         self.func_depth = 0
         self.nested_func_names = set()
         self.comp_segments = []
@@ -253,7 +257,7 @@ class NameCompiler(ast.NodeTransformer):
         # rnd.X(args) → rnd.X(args, name=<name_expr>)
         if (isinstance(node.func, ast.Attribute)
                 and isinstance(node.func.value, ast.Name)
-                and node.func.value.id == "rnd"):
+                and node.func.value.id in self.rnd_names):
 
             method = node.func.attr
             name_expr = self._make_name_expr(method, node)
@@ -278,13 +282,22 @@ class NameCompiler(ast.NodeTransformer):
 # Public API
 # ---------------------------------------------------------------------------
 
-def compile_generator(func):
+def rnd_names(func):
+    """Names under which func can see an rnd object: 'rnd' and any alias."""
+    env = func.__globals__ | closure_vars(func)
+    return {"rnd"} | {k for k, v in env.items() if isinstance(v, RandomTraceable)}
+
+
+def compile_generator(func, rnd=None):
     """
     Compile a PTO generator by injecting name= into every rnd.X() call.
 
     The compiled generator works with the existing PTO rnd proxy and
     tracer — it replaces the automatic names layer with static names
-    derived from the AST.
+    derived from the AST. Calls are recognised under the name rnd and
+    under any other name bound to an rnd object (eg
+    `from pto import rnd as random`). If `rnd` is given, all those names
+    refer to it in the compiled generator.
 
     Returns a function with the same signature as the original generator.
 
@@ -292,7 +305,9 @@ def compile_generator(func):
         _original_source: the original source code
         _compiled_source: the transformed source code (via ast.unparse)
     """
-    new_func, source, new_source = rewrite_function(func, [NameCompiler()])
+    names = rnd_names(func)
+    environment = {name: rnd for name in names} if rnd is not None else None
+    new_func, source, new_source = rewrite_function(func, [NameCompiler(names)], environment)
     new_func._original_source = source
     new_func._compiled_source = new_source
     return new_func
